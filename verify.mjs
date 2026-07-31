@@ -246,6 +246,19 @@ async function main() {
     'unknown route shows a designed 404',
   )
 
+  // ── Subpath deploy: static routes must be real 200s ────────────────────
+  // GitHub Pages has no rewrite rules. Without pre-rendered route directories
+  // these paths are served from 404.html — the app renders, but the status
+  // line says 404, which breaks link unfurling in Outlook and Teams. Only
+  // meaningful against a deployed origin; dev/preview always answer 200.
+  if (!BASE.includes('localhost')) {
+    console.log('\nDeployed routing')
+    for (const route of ['deductions', 'promotions', 'analytics', 'funds']) {
+      const res = await page.goto(`${BASE}/${route}`, { waitUntil: 'domcontentloaded' })
+      check(res?.status() === 200, `/${route} returns HTTP 200`, `got ${res?.status()}`)
+    }
+  }
+
   await browser.close()
 
   console.log(`\n${results.length - failures}/${results.length} checks passed`)

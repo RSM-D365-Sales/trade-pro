@@ -18,7 +18,7 @@ npm run dev      # http://localhost:5173
 | `npm run dev` | Vite dev server |
 | `npm run build` | Production build → `dist/` (≈112 kB gzipped) |
 | `npm test` | 60 unit tests — calc engine, matching engine, seed integrity, economics |
-| `npm run verify` | 28-check browser smoke test in system Edge + screenshots |
+| `npm run verify` | Browser smoke test in system Edge + screenshots (28 local, 32 against a deploy) |
 | `npm run typecheck` | `tsc --noEmit` |
 
 ---
@@ -184,14 +184,26 @@ React Router, Zustand, lucide-react, clsx, date-fns.
 the Playwright browser CDN is blocked by the corporate proxy, so downloading
 Chromium is not an option. Start `npm run dev` first.
 
-It runs 28 assertions across every page — including that a grid edit really does
+It runs assertions across every page — including that a grid edit really does
 move the live P&L, that undo restores it, and that tightening a matching
 tolerance re-scores the whole book — and writes screenshots to
 `verify-screenshots/`. Console errors fail the run.
 
 ```
-28/28 checks passed
+28/28 checks passed            # local dev server
+32/32 checks passed            # against https://www.rsmd365.com/trade-pro/
 ```
+
+Point it at any origin:
+
+```bash
+BASE_URL=https://www.rsmd365.com/trade-pro/ node verify.mjs
+```
+
+Against a deployed origin it adds four checks that each static route returns a
+genuine **HTTP 200** rather than a 404 body that merely happens to render —
+GitHub Pages has no rewrite rules, so the workflow pre-renders each route as a
+real directory.
 
 ---
 
