@@ -1,0 +1,15 @@
+node_modules
+dist
+verify-screenshots
+tsconfig.tsbuildinfo
+.DS_Store
+*.local
+.env
+.env.*
+
+# Local agent/tooling config — contains machine-specific absolute paths.
+.claude/
+
+# Internal go-to-market material — this repo is PUBLIC.
+# Pricing, competitive positioning and partner-channel strategy stay on OneDrive.
+TPM_BUILD_PLAN.md

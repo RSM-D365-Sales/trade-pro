@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tradewind TPM — Presenter Demo Script</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --plane: #f9f9f7;
+        --surface: #fcfcfb;
+        --raised: #ffffff;
+        --sunken: #f2f1ed;
+        --ink: #0b0b0b;
+        --ink-2: #52514e;
+        --ink-3: #898781;
+        --line: rgba(11, 11, 11, 0.1);
+        --accent: #2a78d6;
+        --accent-soft: #eaf2fd;
+        --accent-ink: #184f95;
+        --good: #0ca30c;
+        --warn: #fab219;
+        --crit: #d03b3b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --plane: #0d0d0d;
+          --surface: #1a1a19;
+          --raised: #222220;
+          --sunken: #131312;
+          --ink: #ffffff;
+          --ink-2: #c3c2b7;
+          --ink-3: #898781;
+          --line: rgba(255, 255, 255, 0.1);
+          --accent: #3987e5;
+          --accent-soft: #14243a;
+          --accent-ink: #9ec5f4;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 15px/1.65 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background: var(--plane);
+        color: var(--ink);
+      }
+      .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; }
+      header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+      h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 6px; }
+      .sub { color: var(--ink-3); font-size: 14px; margin: 0; }
+      h2 {
+        font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em;
+        color: var(--ink-3); margin: 40px 0 12px; font-weight: 650;
+      }
+      h3 { font-size: 18px; letter-spacing: -0.01em; margin: 28px 0 8px; }
+      p { margin: 0 0 12px; color: var(--ink-2); }
+      strong { color: var(--ink); font-weight: 620; }
+      .act {
+        background: var(--surface); border: 1px solid var(--line);
+        border-radius: 12px; padding: 22px 24px; margin: 16px 0;
+      }
+      .act header {
+        display: flex; align-items: baseline; gap: 12px;
+        border: 0; padding: 0; margin: 0 0 4px;
+      }
+      .chip {
+        display: inline-block; font-size: 11px; font-weight: 650;
+        letter-spacing: 0.04em; text-transform: uppercase;
+        padding: 3px 8px; border-radius: 5px;
+        background: var(--accent-soft); color: var(--accent-ink);
+      }
+      .chip.crit { background: rgba(208, 59, 59, 0.1); color: var(--crit); }
+      .chip.good { background: rgba(12, 163, 12, 0.1); color: var(--good); }
+      .time { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+      ol.beats { counter-reset: b; list-style: none; padding: 0; margin: 14px 0 0; }
+      ol.beats > li {
+        counter-increment: b; position: relative;
+        padding: 0 0 16px 34px; border-left: 1px solid var(--line);
+        margin-left: 10px;
+      }
+      ol.beats > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+      ol.beats > li::before {
+        content: counter(b); position: absolute; left: -11px; top: 0;
+        width: 21px; height: 21px; border-radius: 50%;
+        background: var(--accent); color: #fff;
+        font-size: 11px; font-weight: 650;
+        display: grid; place-items: center;
+      }
+      .say {
+        border-left: 3px solid var(--accent); background: var(--sunken);
+        padding: 10px 14px; border-radius: 0 7px 7px 0; margin: 8px 0;
+        font-size: 14px; color: var(--ink);
+      }
+      .say::before {
+        content: 'Say'; display: block; font-size: 10px; font-weight: 650;
+        letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3);
+        margin-bottom: 3px;
+      }
+      .do { font-size: 14px; color: var(--ink-2); }
+      .do::before {
+        content: 'Do'; display: inline-block; font-size: 10px; font-weight: 650;
+        letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3);
+        margin-right: 8px;
+      }
+      kbd {
+        font: inherit; font-size: 12px; padding: 1px 5px; border-radius: 4px;
+        background: var(--raised); border: 1px solid var(--line);
+      }
+      table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px; }
+      th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); font-weight: 650; }
+      td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 14px 0 24px; }
+      .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+      .stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); }
+      .stat .v { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; margin-top: 4px; }
+      .stat .n { font-size: 12px; color: var(--ink-3); margin-top: 3px; }
+      .warn {
+        background: rgba(250, 178, 25, 0.1); border: 1px solid rgba(250, 178, 25, 0.3);
+        border-radius: 9px; padding: 12px 16px; margin: 16px 0; font-size: 14px;
+      }
+      footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-3); }
+      a { color: var(--accent); }
+      ul { color: var(--ink-2); padding-left: 20px; }
+      li { margin-bottom: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Tradewind TPM — presenter demo script</h1>
+        <p class="sub">
+          Three acts, 22 minutes. Fictional prospect: <strong>Cascade Pantry Co.</strong>,
+          a ~$193M snack &amp; beverage manufacturer running trade promotions out of Excel.
+        </p>
+      </header>
+
+      <div class="warn">
+        <strong>Lead with the money, not the feature list.</strong> Deduction recovery is a
+        hard-dollar, six-week sale. Full-suite TPM is a twelve-month sale. Open on Act 1
+        every time — planning and analytics are what expand the footprint once you are in.
+      </div>
+
+      <h2>The numbers in this demo tenant</h2>
+      <div class="grid">
+        <div class="stat">
+          <div class="k">Gross sales</div><div class="v">$193M</div>
+          <div class="n">trailing 52 weeks</div>
+        </div>
+        <div class="stat">
+          <div class="k">Trade spend rate</div><div class="v">12.9%</div>
+          <div class="n">$24.9M of gross</div>
+        </div>
+        <div class="stat">
+          <div class="k">Deducted</div><div class="v">$19.6M</div>
+          <div class="n">300 chargebacks</div>
+        </div>
+        <div class="stat">
+          <div class="k">Invalid or unmatched</div><div class="v" style="color: var(--crit)">$4.1M</div>
+          <div class="n">21% of everything they took</div>
+        </div>
+      </div>
+
+      <!-- ACT 1 -->
+      <div class="act">
+        <header>
+          <span class="chip crit">Act 1</span>
+          <h3 style="margin: 0">Deduction recovery — the hook</h3>
+          <span class="time">~9 min</span>
+        </header>
+        <p>
+          The goal of this act is one number: <strong>$4.1M they took that nobody can
+          justify</strong>. Everything else in the product is downstream of the prospect
+          believing that number applies to them.
+        </p>
+
+        <ol class="beats">
+          <li>
+            <p class="do">Open <strong>Deductions</strong>. Do not narrate the nav.</p>
+            <div class="say">
+              This is every chargeback your retailers took last year. Nineteen point six
+              million dollars, three hundred documents. Right now, who researches these?
+            </div>
+            <p class="do">Wait for the answer. It is almost always "one person, part-time,
+            and only the big ones."</p>
+          </li>
+          <li>
+            <p class="do">Point at the four buckets across the top.</p>
+            <div class="say">
+              Every one of these was scored against your promotion calendar the moment it
+              landed. A hundred and eight matched cleanly — nobody needs to touch those.
+              These forty-three the system thinks you should not be paying at all.
+            </div>
+          </li>
+          <li>
+            <p class="do">Click the <strong>Likely invalid</strong> tile, then open the
+            largest row.</p>
+            <div class="say">
+              Here is why it flagged it. Customer matches, dates match, but the retailer
+              coded it as a shortage — and this is a promotion. Either they miscoded real
+              trade money, or they are charging you for a delivery problem under a
+              promotional line. Either way you do not pay it today.
+            </div>
+          </li>
+          <li>
+            <p class="do">Scroll to the signal breakdown bars inside the drawer.</p>
+            <div class="say">
+              This is the part that matters. It is not a black box giving you a number —
+              it shows you which evidence agrees and which does not, so your analyst
+              decides in ten seconds instead of opening four systems.
+            </div>
+          </li>
+          <li>
+            <p class="do">Click <strong>Open dispute</strong>. Show the correspondence
+            thread on an already-resolved one.</p>
+            <div class="say">
+              Dispute, backup, correspondence, recovery — all on the document. When the
+              buyer asks in March what happened in October, it is right here.
+            </div>
+          </li>
+          <li>
+            <p class="do">Return to the tiles. Land the close.</p>
+            <div class="say">
+              Four point one million with nothing behind it. At the win rate this team
+              already gets, that is about three and a quarter million still on the table —
+              and it is on the table purely because nobody has time to research it.
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <!-- ACT 2 -->
+      <div class="act">
+        <header>
+          <span class="chip">Act 2</span>
+          <h3 style="margin: 0">Planning — the expansion</h3>
+          <span class="time">~7 min</span>
+        </header>
+        <p>
+          You are no longer selling recovery; you are selling <em>not going back to
+          Excel</em>. The only thing that matters in this act is that the grid feels fast.
+        </p>
+
+        <ol class="beats">
+          <li>
+            <p class="do">Open <strong>Promotions</strong> → click any row.</p>
+            <div class="say">
+              Six dates, and they are all different — when they can buy on deal, when we
+              ship, when it is actually on shelf. Most spreadsheets track one. That is why
+              deductions never reconcile.
+            </div>
+          </li>
+          <li>
+            <p class="do">Click into a Baseline cell. <strong>Type a number. Press
+            Enter.</strong> Watch the P&amp;L panel move.</p>
+            <div class="say">
+              Every number on the right recalculated as I typed — and it is the same
+              calculation that runs overnight against your actuals, so what a planner sees
+              at 9am is what finance posts at midnight.
+            </div>
+          </li>
+          <li>
+            <p class="do">Select a range, press <kbd>Ctrl</kbd>+<kbd>D</kbd>. Then
+            <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</p>
+            <div class="say">
+              Fill down. Undo. Copy and paste straight out of the deal sheet they emailed
+              you. If this grid loses to Excel, nothing else in the product matters.
+            </div>
+          </li>
+          <li>
+            <p class="do">Point at the fund panel, then the conflicts panel.</p>
+            <div class="say">
+              Live fund balance as you plan — you find out you are over-committed now, not
+              at approval. And this flags that another event on the same customer is
+              running the same SKU the same week. Two deals on one item double-funds the
+              retailer and makes the lift impossible to attribute.
+            </div>
+          </li>
+          <li>
+            <p class="do">Go to <strong>Trade calendar</strong>. Drag a bar two weeks
+            right. Drag its trailing edge.</p>
+            <div class="say">
+              Move it, extend it — snaps to retail weeks. Anything outlined in red is a
+              SKU collision.
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <!-- ACT 3 -->
+      <div class="act">
+        <header>
+          <span class="chip good">Act 3</span>
+          <h3 style="margin: 0">Honest analytics — the trust close</h3>
+          <span class="time">~6 min</span>
+        </header>
+        <p>
+          This act is a differentiator, not a feature. Nearly every tool in the category
+          reports gross lift because it flatters the buyer. Saying so out loud is the
+          whole move.
+        </p>
+
+        <ol class="beats">
+          <li>
+            <p class="do">Open <strong>Analytics</strong>. Start at the waterfall.</p>
+            <div class="say">
+              Gross to net. This is the view your CFO asks for and the one that takes three
+              days in Excel. Off-invoice, bill-backs, fixed funds, unrecovered deductions —
+              then COGS, then what is actually left.
+            </div>
+          </li>
+          <li>
+            <p class="do">Move to <strong>Quality of lift</strong>. Slow down here.</p>
+            <div class="say">
+              Your promotions reported a certain lift. But some of it was stolen from your
+              own sibling SKUs, and some of it was pantry loading — volume the following
+              two weeks gave straight back. Only eighty percent of the headline was real.
+            </div>
+            <p class="do">Pause. Let them react.</p>
+            <div class="say">
+              Every tool in this category can show you the top number. We show you this one.
+              You are going to make different decisions because of it.
+            </div>
+          </li>
+          <li>
+            <p class="do">Scroll to <strong>Promotion effectiveness</strong>. Point at the
+            struck-through ROI column.</p>
+            <div class="say">
+              Struck through is what a conventional TPM tool would have reported. The number
+              next to it is what actually happened. Several of these look positive on
+              reported lift, which is exactly why they get repeated every year.
+            </div>
+          </li>
+          <li>
+            <p class="do">Optional, if they are technical: open <strong>Settings</strong>
+            and drag the amount tolerance.</p>
+            <div class="say">
+              And none of this is pre-baked. That just re-scored all three hundred
+              deductions live. Every customer tunes these against their own retailers.
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <h2>Discovery questions — ask before the demo if you can</h2>
+      <table>
+        <thead><tr><th>Question</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>Roughly what do you spend on trade as a percent of gross?</td><td>Sizes the whole opportunity. 12–20% is normal; if they don't know, that is itself the pitch.</td></tr>
+          <tr><td>Who researches deductions today, and how many can they get through?</td><td>Almost always one part-time person doing the largest 10%. The other 90% is your number.</td></tr>
+          <tr><td>What happens to a deduction nobody has time to look at?</td><td>"We write it off." That is the recoverable pool, stated by them.</td></tr>
+          <tr><td>How do you know whether a promotion worked?</td><td>If the answer is "shipments went up," Act 3 will land hard.</td></tr>
+          <tr><td>Which ERP, and are you married to it?</td><td>Sets up the ERP-agnostic message. D365, NetSuite, SAP and Acumatica are all in scope.</td></tr>
+          <tr><td>How many people would touch this?</td><td>Pricing is platform + trade spend under management, not pure per-seat.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Objections</h2>
+      <table>
+        <thead><tr><th>They say</th><th>You say</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>"Our ERP already does this."</td>
+            <td>Ask them to show you fund balance by customer and brand for next quarter. No mid-market ERP does trade promotion natively — that is why the plan lives in Excel.</td>
+          </tr>
+          <tr>
+            <td>"We can't afford a TPM system."</td>
+            <td>Go back to the $4.1M. The system is not the cost line, the unrecovered deductions are. Start on deduction management only and expand later.</td>
+          </tr>
+          <tr>
+            <td>"Implementation will take a year."</td>
+            <td>CSV in on day one. ERP connection when they are ready, not before. Half of mid-market prospects stay on CSV permanently and are perfectly happy.</td>
+          </tr>
+          <tr>
+            <td>"Our data is a mess."</td>
+            <td>That is the assumption the matching engine is built on. Unmapped codes, missing references, partial claims and wrong brands are all first-class cases — this demo is full of them on purpose.</td>
+          </tr>
+          <tr>
+            <td>"How is this different from Exceedra or Blacksmith?"</td>
+            <td>Those start around six figures a year with long implementations and treat deductions as a module. For mid-market, deductions <em>are</em> the pain.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Do not do these</h2>
+      <ul>
+        <li><strong>Do not open on the dashboard.</strong> It is the weakest first screen — no tension in it.</li>
+        <li><strong>Do not tour the nav.</strong> Every minute in a screen that isn't Act 1 is a minute not spent on the recovery number.</li>
+        <li><strong>Do not defend the demo data</strong> if they say their retailers behave differently. Say "show me a remittance file" — that is a discovery win, not an objection.</li>
+        <li><strong>Do not promise the ERP connector on a date.</strong> D365 F&amp;SC is first; everything else follows the pipeline.</li>
+      </ul>
+
+      <footer>
+        Reset the demo any time from the <strong>Reset demo</strong> button on the
+        Deductions or Settings page — it restores the seeded dataset exactly, so you can
+        run the same script back to back.
+        <br /><br />
+        Demo data only. Cascade Pantry Co. is fictional; retailer names are used to make
+        the dataset legible to a trade-promotion audience and no figure here describes a
+        real company.
+      </footer>
+    </div>
+  </body>
+</html>

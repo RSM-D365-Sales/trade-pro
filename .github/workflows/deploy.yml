@@ -1,0 +1,67 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow one concurrent deployment; a newer push supersedes an in-flight one
+# rather than queueing behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Gate the deploy on the same checks that run locally. A broken demo is
+      # worse than a stale one — this is the URL that goes in front of prospects.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Serves from https://<domain>/trade-pro/ — vite.config.ts reads this
+          # and the router uses basename={import.meta.env.BASE_URL}.
+          BASE_PATH: /trade-pro/
+
+      # GitHub Pages has no SPA rewrite rules, so a deep link like
+      # /trade-pro/deductions returns 404. Pages serves 404.html for unknown
+      # paths, so making it a copy of index.html boots the app and lets the
+      # router resolve the path. Without this, every link shared in an email
+      # or pasted mid-demo breaks.
+      - name: SPA fallback
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,258 @@
+/**
+ * Browser smoke test.
+ *
+ * Drives the real app in system Edge (`channel: 'msedge'`) because the
+ * Playwright browser CDN is blocked by the corporate proxy — downloading
+ * Chromium is not an option here.
+ *
+ * Run:  npm run dev   (in one terminal)
+ *       npm run verify
+ *
+ * Or point it at any origin:  BASE_URL=http://localhost:4173 node verify.mjs
+ */
+
+import { chromium } from 'playwright'
+import { mkdirSync } from 'node:fs'
+
+// Normalised without a trailing slash so `${BASE}/analytics` never produces a
+// double slash — the deployed URL (https://…/trade-pro/) has one, the dev
+// server does not.
+const BASE = (process.env.BASE_URL ?? 'http://localhost:5173').replace(/\/+$/, '')
+const SHOTS = 'verify-screenshots'
+const HEADLESS = process.env.HEADED !== '1'
+
+const results = []
+let failures = 0
+
+function check(condition, name, detail = '') {
+  const ok = !!condition
+  if (!ok) failures += 1
+  results.push({ name, ok, detail })
+  console.log(`${ok ? '  PASS' : '  FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`)
+}
+
+async function shot(page, name) {
+  await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: false })
+}
+
+async function main() {
+  mkdirSync(SHOTS, { recursive: true })
+
+  const browser = await chromium.launch({ channel: 'msedge', headless: HEADLESS })
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } })
+
+  const consoleErrors = []
+  page.on('console', (m) => {
+    if (m.type() === 'error') consoleErrors.push(m.text())
+  })
+  page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`))
+
+  // ── Dashboard ──────────────────────────────────────────────────────────
+  console.log('\nDashboard')
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('text=Deductions at risk', { timeout: 20000 })
+  check(page.url().startsWith(BASE), 'app boots at the dashboard')
+  // Note: the no-trailing-slash form ('/trade-pro') is NOT asserted here.
+  // GitHub Pages 301-redirects directory paths to the trailing-slash form,
+  // but `vite preview` returns a bare 404 — so the check would fail locally
+  // and pass in production. The router's basename is stripped of its trailing
+  // slash (see main.tsx) so the app renders either way if a host serves both.
+  check(
+    await page.locator('text=Cascade Pantry Co.').first().isVisible(),
+    'demo tenant is named in the shell',
+  )
+  const atRisk = await page.locator('text=Deductions at risk').first().locator('..').innerText()
+  check(/\$\d/.test(atRisk), 'deductions-at-risk tile shows a dollar figure', atRisk.split('\n')[1])
+  await shot(page, '01-dashboard')
+
+  // ── Deductions: the flagship ───────────────────────────────────────────
+  console.log('\nDeductions')
+  await page.click('a[href$="/deductions"]')
+  await page.waitForSelector('text=Engine verdict', { timeout: 20000 })
+
+  const bucketCounts = {}
+  for (const label of ['Auto-matched', 'Needs review', 'Likely invalid', 'No match']) {
+    const btn = page.locator('button', { hasText: new RegExp(`^${label}\\s*\\d+$`) }).first()
+    const text = await btn.innerText().catch(() => '')
+    const n = Number(text.replace(/[^\d]/g, ''))
+    bucketCounts[label] = n
+    check(n > 0, `"${label}" bucket is populated`, `${n} deductions`)
+  }
+  check(
+    Object.values(bucketCounts).reduce((a, b) => a + b, 0) === 300,
+    'buckets account for all 300 deductions',
+    JSON.stringify(bucketCounts),
+  )
+  await shot(page, '02-deductions')
+
+  // Open the largest deduction and inspect the engine's evidence.
+  await page.locator('table tbody tr').first().click()
+  await page.waitForSelector('text=Candidate promotions', { timeout: 10000 })
+  const drawer = page.locator('div[role="dialog"]').first()
+  check(await drawer.isVisible(), 'match review drawer opens')
+  const drawerText = await drawer.innerText()
+  check(/amount deducted/i.test(drawerText), 'drawer shows the claim')
+  check(
+    /product scope/i.test(drawerText) && /date window/i.test(drawerText),
+    'signal breakdown is rendered',
+  )
+  await shot(page, '03-match-review')
+  await page.keyboard.press('Escape')
+
+  // Filter to the money bucket.
+  await page.locator('button', { hasText: /^Likely invalid/ }).first().click()
+  await page.waitForTimeout(300)
+  const invalidRows = await page.locator('table tbody tr').count()
+  check(invalidRows > 0, 'likely-invalid filter returns rows', `${invalidRows} rows`)
+  await shot(page, '04-likely-invalid')
+
+  // ── Promotions + planning grid ─────────────────────────────────────────
+  console.log('\nPlanning grid')
+  await page.click('a[href$="/promotions"]')
+  await page.waitForSelector('text=Committed trade spend', { timeout: 20000 })
+  await shot(page, '05-promotions')
+
+  await page.locator('table tbody tr').first().click()
+  await page.waitForSelector('text=Live P&L', { timeout: 20000 })
+  check(await page.locator('text=Event windows').first().isVisible(), 'six-date timeline renders')
+  check(
+    await page.locator('[role="grid"]').first().isVisible(),
+    'planning grid renders',
+  )
+
+  // Edit a cell and prove the P&L recalculates from it.
+  const roiBefore = await page.locator('text=Promotion ROI').first().locator('..').innerText()
+  const baselineCell = page.locator('[role="row"]').nth(1).locator('[role="gridcell"]').nth(4)
+  await baselineCell.click()
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Control+a')
+  await page.keyboard.type('9999')
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(400)
+  const roiAfter = await page.locator('text=Promotion ROI').first().locator('..').innerText()
+  check(roiBefore !== roiAfter, 'live P&L recalculates after a grid edit')
+
+  // Undo must put it back.
+  await page.locator('button', { hasText: 'Undo' }).first().click()
+  await page.waitForTimeout(400)
+  const roiUndone = await page.locator('text=Promotion ROI').first().locator('..').innerText()
+  check(roiUndone === roiBefore, 'undo restores the previous value')
+  await shot(page, '06-planning-grid')
+
+  // ── Trade calendar ─────────────────────────────────────────────────────
+  console.log('\nTrade calendar')
+  await page.click('a[href$="/calendar"]')
+  await page.waitForSelector('text=Customer', { timeout: 20000 })
+  await page.waitForTimeout(600)
+  const bars = await page.locator('[role="button"][title*="planned spend"]').count()
+  check(bars > 0, 'calendar renders promotion bars', `${bars} bars`)
+  await shot(page, '07-calendar')
+
+  // ── Funds ──────────────────────────────────────────────────────────────
+  console.log('\nTrade funds')
+  await page.click('a[href$="/funds"]')
+  await page.waitForSelector('text=Fund balances', { timeout: 20000 })
+  const fundRows = await page.locator('table tbody tr').count()
+  check(fundRows > 0, 'fund table renders', `${fundRows} funds`)
+  await page.locator('table tbody tr').first().click()
+  await page.waitForSelector('text=Ledger', { timeout: 10000 })
+  check(
+    await page.locator('div[role="dialog"]').first().isVisible(),
+    'fund ledger drill-down opens',
+  )
+  await shot(page, '08-fund-ledger')
+  await page.keyboard.press('Escape')
+
+  // ── Analytics ──────────────────────────────────────────────────────────
+  console.log('\nAnalytics')
+  await page.click('a[href$="/analytics"]')
+  await page.waitForSelector('text=Gross-to-net waterfall', { timeout: 20000 })
+  await page.waitForTimeout(500)
+  check(
+    await page.locator('text=Quality of lift').first().isVisible(),
+    'honest-analytics panel renders',
+  )
+  check(
+    await page.locator('text=Promotion effectiveness').first().isVisible(),
+    'effectiveness leaderboard renders',
+  )
+  const svgCount = await page.locator('svg').count()
+  check(svgCount > 4, 'charts rendered as SVG', `${svgCount} svg nodes`)
+  await shot(page, '09-analytics')
+
+  // Table view is the relief for light-mode contrast — it must exist and work.
+  const tableToggle = page.locator('button[aria-label="Show as table"]').first()
+  await tableToggle.click()
+  await page.waitForTimeout(250)
+  check(
+    await page.locator('button[aria-label="Show as chart"]').first().isVisible(),
+    'every chart offers a table view',
+  )
+  await tableToggle.click().catch(() => {})
+
+  // ── Settings: retune the engine live ───────────────────────────────────
+  console.log('\nSettings')
+  await page.click('a[href$="/settings"]')
+  await page.waitForSelector('text=Deduction matching', { timeout: 20000 })
+  const autoBefore = await page
+    .locator('text=Auto-matched').last().locator('..').locator('p').nth(1).innerText()
+  const slider = page.locator('input[aria-label="Amount tolerance"]')
+  await slider.fill('0.02')
+  await page.waitForTimeout(600)
+  const autoAfter = await page
+    .locator('text=Auto-matched').last().locator('..').locator('p').nth(1).innerText()
+  check(
+    autoBefore !== autoAfter,
+    'tightening amount tolerance re-scores every deduction live',
+    `${autoBefore} → ${autoAfter}`,
+  )
+  await shot(page, '10-settings')
+
+  // ── Command palette ────────────────────────────────────────────────────
+  console.log('\nShell')
+  await page.keyboard.press('Control+k')
+  await page.waitForSelector('input[placeholder*="Search promotions"]', { timeout: 5000 })
+  await page.keyboard.type('Kroger')
+  await page.waitForTimeout(350)
+  const paletteHits = await page.locator('div[role="dialog"] li').count()
+  check(paletteHits > 0, 'command palette searches the dataset', `${paletteHits} results`)
+  await shot(page, '11-command-palette')
+  await page.keyboard.press('Escape')
+
+  // ── Dark mode ──────────────────────────────────────────────────────────
+  await page.click('button[aria-label="Switch to dark mode"]')
+  await page.waitForTimeout(400)
+  const theme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
+  check(theme === 'dark', 'dark mode applies')
+  await page.goto(`${BASE}/analytics`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(700)
+  await shot(page, '12-analytics-dark')
+  await page.goto(`${BASE}/deductions`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(700)
+  await shot(page, '13-deductions-dark')
+
+  // ── Deep link + 404 ────────────────────────────────────────────────────
+  await page.goto(`${BASE}/nope`, { waitUntil: 'networkidle' })
+  check(
+    await page.locator("text=That page doesn’t exist").first().isVisible(),
+    'unknown route shows a designed 404',
+  )
+
+  check(consoleErrors.length === 0, 'no console errors during the run',
+    consoleErrors.slice(0, 3).join(' | '))
+
+  await browser.close()
+
+  console.log(`\n${results.length - failures}/${results.length} checks passed`)
+  console.log(`Screenshots in ./${SHOTS}/`)
+  if (failures > 0) {
+    console.log('\nFailures:')
+    for (const r of results.filter((r) => !r.ok)) console.log(`  - ${r.name} ${r.detail}`)
+    process.exit(1)
+  }
+}
+
+main().catch((err) => {
+  console.error('\nverify.mjs crashed:', err)
+  process.exit(1)
+})
