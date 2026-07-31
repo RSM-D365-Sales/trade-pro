@@ -7,7 +7,7 @@
 
 import { clsx } from 'clsx'
 import {
-  BadgeDollarSign, BarChart3, CalendarRange, Command, LayoutDashboard, Moon,
+  BadgeDollarSign, BarChart3, CalendarRange, Command, LayoutDashboard, LineChart, Moon,
   ReceiptText, Search, Settings2, Sun, Table2, X,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -21,6 +21,7 @@ const NAV = [
   { to: '/deductions', label: 'Deductions', icon: ReceiptText, badge: 'queue' as const },
   { to: '/promotions', label: 'Promotions', icon: Table2 },
   { to: '/calendar', label: 'Trade calendar', icon: CalendarRange },
+  { to: '/forecast', label: 'Forecast', icon: LineChart },
   { to: '/funds', label: 'Trade funds', icon: BadgeDollarSign },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings2 },

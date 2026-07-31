@@ -131,7 +131,7 @@
       <header>
         <h1>Tradewind TPM — presenter demo script</h1>
         <p class="sub">
-          Three acts, 22 minutes. Fictional prospect: <strong>Cascade Pantry Co.</strong>,
+          Four acts, 27 minutes (Act 2b is optional). Fictional prospect: <strong>Cascade Pantry Co.</strong>,
           a ~$193M snack &amp; beverage manufacturer running trade promotions out of Excel.
         </p>
       </header>
@@ -343,6 +343,70 @@
         </ol>
       </div>
 
+      <!-- ACT 2b -->
+      <div class="act">
+        <header>
+          <span class="chip">Act 2b</span>
+          <h3 style="margin: 0">Forecasting — for the demand planner in the room</h3>
+          <span class="time">~5 min</span>
+        </header>
+        <p>
+          Skip this act if the room is all sales and finance. Run it the moment a
+          <strong>demand planner or supply chain lead</strong> is on the call — it is the
+          screen they will judge the whole product on.
+        </p>
+
+        <ol class="beats">
+          <li>
+            <p class="do">Open <strong>Forecast</strong>. Point at a single number, then at the
+            three rows underneath it.</p>
+            <div class="say">
+              Nobody typed that number. It is stores times rate of sale times seasonality times
+              the weeks in the period. So when it is wrong, you are not arguing about a number —
+              you are looking at which of the three assumptions broke.
+            </div>
+          </li>
+          <li>
+            <p class="do">Point at the week count under two adjacent column headers — one 4w,
+            one 5w.</p>
+            <div class="say">
+              These are fiscal periods, not months. Four weeks, then five. A five-week period
+              sells about twenty-five percent more at exactly the same rate of sale. If you
+              forecast in calendar months, every period looks like a miss and nobody can tell a
+              real problem from the calendar.
+            </div>
+            <p class="do">This is the line that lands with a planner. Do not rush it.</p>
+          </li>
+          <li>
+            <p class="do">Change the <strong>level</strong> dropdown from Customer → Product
+            group to Brand → Customer.</p>
+            <div class="say">
+              Same drivers, different question. The demand planner works customer by customer;
+              the brand manager wants it the other way round. Neither of them maintains a
+              separate spreadsheet, and the total does not move.
+            </div>
+          </li>
+          <li>
+            <p class="do">Edit a Stores or Base velocity cell. Watch the roll-up and the total
+            move.</p>
+            <div class="say">
+              Edit at any level and it rolls straight up. And the cell stays marked as yours —
+              the overnight recompute will not quietly overwrite a planner's judgement.
+            </div>
+          </li>
+          <li>
+            <p class="do">Click <strong>View recommendations</strong>, then <strong>Apply</strong>
+            on the first one.</p>
+            <div class="say">
+              Thirty-seven lines where the assumption has drifted from what actually shipped, of
+              a hundred and two. Not three hundred — if everything is flagged, nobody opens it.
+              It tells you the line, the driver, the suggested value and what it does to the
+              number. It never changes anything on its own.
+            </div>
+          </li>
+        </ol>
+      </div>
+
       <h2>Discovery questions — ask before the demo if you can</h2>
       <table>
         <thead><tr><th>Question</th><th>Why it matters</th></tr></thead>
@@ -351,6 +415,8 @@
           <tr><td>Who researches deductions today, and how many can they get through?</td><td>Almost always one part-time person doing the largest 10%. The other 90% is your number.</td></tr>
           <tr><td>What happens to a deduction nobody has time to look at?</td><td>"We write it off." That is the recoverable pool, stated by them.</td></tr>
           <tr><td>How do you know whether a promotion worked?</td><td>If the answer is "shipments went up," Act 3 will land hard.</td></tr>
+          <tr><td>Who builds the volume forecast, and in what?</td><td>If it is a spreadsheet built off last year plus a percentage, run Act 2b.</td></tr>
+          <tr><td>Do you forecast in fiscal periods or calendar months?</td><td>Months in a 4-4-5 business is a standing accuracy problem they may not have named.</td></tr>
           <tr><td>Which ERP, and are you married to it?</td><td>Sets up the ERP-agnostic message. D365, NetSuite, SAP and Acumatica are all in scope.</td></tr>
           <tr><td>How many people would touch this?</td><td>Pricing is platform + trade spend under management, not pure per-seat.</td></tr>
         </tbody>

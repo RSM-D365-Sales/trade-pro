@@ -19,6 +19,10 @@ import {
 import {
   brandIndex, claimableSpendIndex, plannedSpendIndex, tacticIndex,
 } from '../data/seed/sales'
+import {
+  applyRecommendation, bulkScaleDriver, buildRecommendations, setDriver,
+  type DriverField, type ForecastRecommendation,
+} from '../lib/calc/forecast'
 import { n4 } from '../lib/calc/money'
 import { addDays } from '../lib/fiscal'
 
@@ -47,6 +51,10 @@ interface AppState {
 
   toast: { id: number; message: string; tone: 'good' | 'critical' | 'neutral' } | null
 
+  /** Recomputed from the live forecast lines, never stored stale. */
+  recommendations: ForecastRecommendation[]
+  dismissedRecommendations: Set<string>
+
   // actions
   setTheme: (t: Theme) => void
   showToast: (message: string, tone?: 'good' | 'critical' | 'neutral') => void
@@ -65,6 +73,17 @@ interface AppState {
   setPromotionStatus: (promotionId: string, status: PromotionStatus, note?: string) => void
   movePromotion: (promotionId: string, deltaWeeks: number) => void
   resizePromotion: (promotionId: string, deltaWeeks: number) => void
+
+  // ── forecast ──
+  /** Edit one driver on one leaf line for one period. */
+  setForecastDriver: (lineId: string, periodKey: string, field: DriverField, value: number) => void
+  /** Scale a driver across a selection — the post-range-review bulk move. */
+  bulkScaleForecast: (
+    lineIds: string[], periodKeys: string[], field: DriverField, factor: number,
+  ) => void
+  acceptRecommendation: (recommendationId: string) => void
+  dismissRecommendation: (recommendationId: string) => void
+
   resetDemo: () => void
 }
 
@@ -120,6 +139,26 @@ function initialState() {
     dataset,
     ...indexes,
     matchesByDeduction: runMatching(dataset, DEFAULT_MATCH_OPTIONS, indexes),
+    recommendations: buildRecommendations(
+      dataset.forecast.lines, dataset.forecast.periods, dataset.forecast.signals,
+    ),
+    dismissedRecommendations: new Set<string>(),
+  }
+}
+
+/**
+ * Recommendations are always derived from the CURRENT lines. Recomputing on
+ * every edit is what makes the queue drain visibly as a planner works — a
+ * cached list would keep proposing changes that have already been made.
+ */
+function withForecastLines(
+  s: AppState,
+  lines: AppState['dataset']['forecast']['lines'],
+) {
+  const forecast = { ...s.dataset.forecast, lines }
+  return {
+    dataset: { ...s.dataset, forecast },
+    recommendations: buildRecommendations(lines, forecast.periods, forecast.signals),
   }
 }
 
@@ -412,6 +451,46 @@ export const useStore = create<AppState>((set, get) => ({
       return { ...p, performEnd: nextEnd, shipEnd: addDays(p.shipEnd, deltaWeeks * 7) }
     })
     set({ dataset: { ...s.dataset, promotions } })
+  },
+
+  setForecastDriver: (lineId, periodKey, field, value) => {
+    const s = get()
+    const lines = s.dataset.forecast.lines.map((l) =>
+      l.id === lineId ? setDriver(l, periodKey, field, value) : l,
+    )
+    set(withForecastLines(s, lines))
+  },
+
+  bulkScaleForecast: (lineIds, periodKeys, field, factor) => {
+    const s = get()
+    const lines = bulkScaleDriver(
+      s.dataset.forecast.lines, new Set(lineIds), periodKeys, field, factor,
+    )
+    set(withForecastLines(s, lines))
+    const pct = `${factor >= 1 ? '+' : ''}${((factor - 1) * 100).toFixed(1)}%`
+    s.showToast(
+      `${pct} applied to ${lineIds.length} line${lineIds.length === 1 ? '' : 's'} across ${periodKeys.length} period${periodKeys.length === 1 ? '' : 's'}`,
+      'good',
+    )
+  },
+
+  acceptRecommendation: (recommendationId) => {
+    const s = get()
+    const rec = s.recommendations.find((r) => r.id === recommendationId)
+    if (!rec) return
+    const lines = applyRecommendation(s.dataset.forecast.lines, rec)
+    set(withForecastLines(s, lines))
+    s.showToast(
+      `Applied — forecast moves ${rec.impactUnits >= 0 ? '+' : ''}${Math.round(rec.impactUnits).toLocaleString('en-US')} cs`,
+      'good',
+    )
+  },
+
+  dismissRecommendation: (recommendationId) => {
+    const s = get()
+    const next = new Set(s.dismissedRecommendations)
+    next.add(recommendationId)
+    set({ dismissedRecommendations: next })
   },
 
   resetDemo: () => {

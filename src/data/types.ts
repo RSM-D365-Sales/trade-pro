@@ -65,6 +65,13 @@ export interface Customer {
   code: string
   channel: 'grocery' | 'mass' | 'club' | 'natural' | 'convenience' | 'distributor'
   region?: string
+  /**
+   * Total selling outlets. The forecast driver is not this number but the
+   * subset actually carrying a given product group - see `storesSelling`
+   * in the forecast engine. Distributors report served outlets rather than
+   * owned stores.
+   */
+  storeCount?: number
   /** Maps this customer into each connected ERP. Key = integration code. */
   externalIds: Record<string, string>
 }
@@ -434,4 +441,20 @@ export interface Dataset {
   disputes: Dispute[]
   settlements: Settlement[]
   auditLog: AuditEntry[]
+  /** Driver-based forecast. See lib/calc/forecast.ts. */
+  forecast: ForecastSlice
 }
+
+export interface ForecastSlice {
+  productGroups: {
+    id: ID
+    name: string
+    brand: string
+    category: string
+    productIds: ID[]
+  }[]
+  periods: import('../lib/calc/forecast').ForecastPeriod[]
+  lines: import('../lib/calc/forecast').ForecastLine[]
+  signals: Map<ID, import('../lib/calc/forecast').ActualSignal>
+}
+

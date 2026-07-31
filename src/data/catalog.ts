@@ -36,50 +36,52 @@ type ChainSpec = {
   name: string
   channel: Customer['channel']
   region: string
-  banners: { code: string; name: string; region: string }[]
+  /** Total selling outlets across the chain. */
+  storeCount: number
+  banners: { code: string; name: string; region: string; storeCount: number }[]
 }
 
 const CHAINS: ChainSpec[] = [
   {
-    code: 'KR', name: 'Kroger Co.', channel: 'grocery', region: 'National',
+    code: 'KR', name: 'Kroger Co.', channel: 'grocery', region: 'National', storeCount: 2740,
     banners: [
-      { code: 'KR-MKT', name: 'Kroger Marketplace', region: 'Midwest' },
-      { code: 'KR-FM', name: 'Fred Meyer', region: 'Northwest' },
-      { code: 'KR-KS', name: 'King Soopers', region: 'Mountain' },
-      { code: 'KR-RA', name: 'Ralphs', region: 'West' },
+      { code: 'KR-MKT', name: 'Kroger Marketplace', region: 'Midwest', storeCount: 1240 },
+      { code: 'KR-FM', name: 'Fred Meyer', region: 'Northwest', storeCount: 480 },
+      { code: 'KR-KS', name: 'King Soopers', region: 'Mountain', storeCount: 620 },
+      { code: 'KR-RA', name: 'Ralphs', region: 'West', storeCount: 400 },
     ],
   },
   {
-    code: 'ACI', name: 'Albertsons Companies', channel: 'grocery', region: 'National',
+    code: 'ACI', name: 'Albertsons Companies', channel: 'grocery', region: 'National', storeCount: 2270,
     banners: [
-      { code: 'ACI-SW', name: 'Safeway', region: 'West' },
-      { code: 'ACI-JO', name: 'Jewel-Osco', region: 'Midwest' },
-      { code: 'ACI-VN', name: 'Vons', region: 'Southwest' },
+      { code: 'ACI-SW', name: 'Safeway', region: 'West', storeCount: 1080 },
+      { code: 'ACI-JO', name: 'Jewel-Osco', region: 'Midwest', storeCount: 590 },
+      { code: 'ACI-VN', name: 'Vons', region: 'Southwest', storeCount: 600 },
     ],
   },
   {
-    code: 'AD', name: 'Ahold Delhaize USA', channel: 'grocery', region: 'East',
+    code: 'AD', name: 'Ahold Delhaize USA', channel: 'grocery', region: 'East', storeCount: 2050,
     banners: [
-      { code: 'AD-SS', name: 'Stop & Shop', region: 'Northeast' },
-      { code: 'AD-FL', name: 'Food Lion', region: 'Southeast' },
-      { code: 'AD-GI', name: 'Giant Food', region: 'Mid-Atlantic' },
+      { code: 'AD-SS', name: 'Stop & Shop', region: 'Northeast', storeCount: 760 },
+      { code: 'AD-FL', name: 'Food Lion', region: 'Southeast', storeCount: 1080 },
+      { code: 'AD-GI', name: 'Giant Food', region: 'Mid-Atlantic', storeCount: 210 },
     ],
   },
   {
-    code: 'WMT', name: 'Walmart Inc.', channel: 'mass', region: 'National',
+    code: 'WMT', name: 'Walmart Inc.', channel: 'mass', region: 'National', storeCount: 4680,
     banners: [
-      { code: 'WMT-SC', name: 'Walmart Supercenter', region: 'National' },
-      { code: 'WMT-NM', name: 'Walmart Neighborhood Market', region: 'National' },
+      { code: 'WMT-SC', name: 'Walmart Supercenter', region: 'National', storeCount: 3560 },
+      { code: 'WMT-NM', name: 'Walmart Neighborhood Market', region: 'National', storeCount: 1120 },
     ],
   },
-  { code: 'PUB', name: 'Publix Super Markets', channel: 'grocery', region: 'Southeast', banners: [{ code: 'PUB-CORE', name: 'Publix', region: 'Southeast' }] },
-  { code: 'HEB', name: 'H-E-B', channel: 'grocery', region: 'Texas', banners: [{ code: 'HEB-CORE', name: 'H-E-B', region: 'Texas' }, { code: 'HEB-CP', name: 'Central Market', region: 'Texas' }] },
-  { code: 'TGT', name: 'Target Corp.', channel: 'mass', region: 'National', banners: [{ code: 'TGT-CORE', name: 'Target', region: 'National' }] },
-  { code: 'CST', name: 'Costco Wholesale', channel: 'club', region: 'National', banners: [{ code: 'CST-CORE', name: 'Costco', region: 'National' }] },
-  { code: 'SFM', name: 'Sprouts Farmers Market', channel: 'natural', region: 'West', banners: [{ code: 'SFM-CORE', name: 'Sprouts', region: 'West' }] },
-  { code: 'WFM', name: 'Whole Foods Market', channel: 'natural', region: 'National', banners: [{ code: 'WFM-CORE', name: 'Whole Foods', region: 'National' }] },
-  { code: 'UNFI', name: 'UNFI', channel: 'distributor', region: 'National', banners: [{ code: 'UNFI-E', name: 'UNFI East', region: 'East' }, { code: 'UNFI-W', name: 'UNFI West', region: 'West' }] },
-  { code: 'KEHE', name: 'KeHE Distributors', channel: 'distributor', region: 'National', banners: [{ code: 'KEHE-CORE', name: 'KeHE', region: 'National' }] },
+  { code: 'PUB', name: 'Publix Super Markets', channel: 'grocery', region: 'Southeast', storeCount: 1390, banners: [{ code: 'PUB-CORE', name: 'Publix', region: 'Southeast', storeCount: 1390 }] },
+  { code: 'HEB', name: 'H-E-B', channel: 'grocery', region: 'Texas', storeCount: 430, banners: [{ code: 'HEB-CORE', name: 'H-E-B', region: 'Texas', storeCount: 380 }, { code: 'HEB-CP', name: 'Central Market', region: 'Texas', storeCount: 50 }] },
+  { code: 'TGT', name: 'Target Corp.', channel: 'mass', region: 'National', storeCount: 1960, banners: [{ code: 'TGT-CORE', name: 'Target', region: 'National', storeCount: 1960 }] },
+  { code: 'CST', name: 'Costco Wholesale', channel: 'club', region: 'National', storeCount: 620, banners: [{ code: 'CST-CORE', name: 'Costco', region: 'National', storeCount: 620 }] },
+  { code: 'SFM', name: 'Sprouts Farmers Market', channel: 'natural', region: 'West', storeCount: 415, banners: [{ code: 'SFM-CORE', name: 'Sprouts', region: 'West', storeCount: 415 }] },
+  { code: 'WFM', name: 'Whole Foods Market', channel: 'natural', region: 'National', storeCount: 530, banners: [{ code: 'WFM-CORE', name: 'Whole Foods', region: 'National', storeCount: 530 }] },
+  { code: 'UNFI', name: 'UNFI', channel: 'distributor', region: 'National', storeCount: 3400, banners: [{ code: 'UNFI-E', name: 'UNFI East', region: 'East', storeCount: 1900 }, { code: 'UNFI-W', name: 'UNFI West', region: 'West', storeCount: 1500 }] },
+  { code: 'KEHE', name: 'KeHE Distributors', channel: 'distributor', region: 'National', storeCount: 2600, banners: [{ code: 'KEHE-CORE', name: 'KeHE', region: 'National', storeCount: 2600 }] },
 ]
 
 function buildCustomers(): Customer[] {
@@ -95,6 +97,7 @@ function buildCustomers(): Customer[] {
       code: chain.code,
       channel: chain.channel,
       region: chain.region,
+      storeCount: chain.storeCount,
       externalIds: { d365: `US-${chain.code}`, netsuite: `${chain.code}00` },
     })
     for (const b of chain.banners) {
@@ -107,6 +110,7 @@ function buildCustomers(): Customer[] {
         code: b.code,
         channel: chain.channel,
         region: b.region,
+        storeCount: b.storeCount,
         externalIds: { d365: `US-${b.code}`, netsuite: `${b.code.replace('-', '')}` },
       })
     }

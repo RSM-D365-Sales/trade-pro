@@ -17,7 +17,7 @@ npm run dev      # http://localhost:5173
 |---|---|
 | `npm run dev` | Vite dev server |
 | `npm run build` | Production build → `dist/` (≈112 kB gzipped) |
-| `npm test` | 60 unit tests — calc engine, matching engine, seed integrity, economics |
+| `npm test` | 95 unit tests — calc, matching and forecast engines, seed integrity, economics |
 | `npm run verify` | Browser smoke test in system Edge + screenshots (28 local, 32 against a deploy) |
 | `npm run typecheck` | `tsc --noEmit` |
 
@@ -40,6 +40,7 @@ carries a **Demo data** badge so nothing is mistaken for a real commercial recor
 | **Promotions** | Every event, ranked on **true** ROI (cannibalization and post-promo dip already netted out). |
 | **Planning grid** | Excel-grade editing: arrow keys, type-to-edit, Ctrl+C/V over a range as TSV, Ctrl+D fill-down, Ctrl+Z undo. Live P&L recalculates on every keystroke, plus a real-time fund check and SKU-level conflict detection. |
 | **Trade calendar** | Customer × week Gantt. Drag to move, drag the trailing edge to extend — both snap to retail weeks. Overlapping events sharing a SKU are outlined in red as you drag. |
+| **Forecast** | Driver-based and multi-level. Every cell is `stores × velocity × seasonality × weeks`, rolling up through a hierarchy you choose — customer → product group, brand → customer, channel → customer → group. Editable drivers, bulk update, and a recommendation queue that compares each assumption against recent actuals. |
 | **Trade funds** | Balances derived from the transaction ledger on every read, never stored. Click any fund to see the postings behind its number. |
 | **Analytics** | Gross-to-net waterfall, quality-of-lift breakdown, spend by tactic, effectiveness leaderboard showing reported ROI struck through next to the true figure. |
 | **Settings** | Retune the matching engine and watch all 300 deductions re-score live. Per-customer reason-code mapping table. |
@@ -68,6 +69,7 @@ src/
 │       ├── funds.ts      ledger → balance, accruals, carryover
 │       ├── baseline.ts   52-week moving average, promoted weeks excluded
 │       ├── waterfall.ts  gross-to-net
+│       ├── forecast.ts   drivers, hierarchy roll-up, recommendations
 │       └── matching.ts   deduction auto-matching
 ├── store/                zustand store + derived selectors
 ├── components/           ui primitives, charts, planning grid, app shell
@@ -94,6 +96,50 @@ It also models the **honest** numbers the plan calls a differentiator —
 cannibalization (lift stolen from sibling SKUs) and pantry loading (the
 post-promotion trough) — as first-class outputs. Analytics ranks on
 `trueRoi`, not `reportedRoi`, and shows the gap.
+
+### The forecast engine — `src/lib/calc/forecast.ts`
+
+A forecast is never typed in. It is built from three drivers a planner can
+defend in a meeting:
+
+```
+units = storesSelling × baseVelocityWeekly × seasonality × weeksInPeriod
+```
+
+That decomposition is the point. "The number is too high" is unactionable;
+"we assumed 189 stores and only 164 have shipped" is a conversation with the
+buyer.
+
+Three decisions in it are load-bearing:
+
+- **Fiscal periods, not calendar months.** In a 4-4-5 year a five-week period
+  sells ~25% more than a four-week one at identical velocity. Forecasting in
+  months smears that across the year and every period reads as a miss. The week
+  count sits under each column header for exactly this reason.
+- **The hierarchy is a parameter, not a structure.** Drivers live at leaf level
+  (customer × product group) and roll up through whatever dimension list the
+  planner picks. Swapping `['customer','productGroup']` for `['brand','customer']`
+  re-pivots the entire grid without touching a driver, and the grand total is
+  invariant — there is a test for that.
+- **Drivers only appear where a node resolves to one leaf line.** A store count
+  averaged across three retailers is not a number anyone can act on, and showing
+  it invites an edit that silently fans out across the roll-up.
+
+The recommendation engine compares each driver against the last thirteen clean
+weeks and proposes a specific value. It never rewrites a driver on its own, it
+reports **one finding per line per driver** (a drifting velocity drifts in every
+open period — saying so three times just triples the queue), and it respects a
+planner override rather than nagging about it.
+
+Two things it deliberately does **not** do:
+
+- It does not compare a seasonal recent window against an annual average. Both
+  sides are de-seasonalised first, or every summer it would insist beverages are
+  under-forecast purely because of the time of year.
+- It does not flag "a promotion runs here but the forecast shows no uplift".
+  This is a *base* forecast — the history behind it is de-promoted on purpose
+  and lift is owned by the promotion plan. Flagging its own correct behaviour as
+  a defect is how a tool teaches people to ignore its warnings.
 
 ### The matching engine — `src/lib/calc/matching.ts`
 
@@ -137,6 +183,7 @@ and `verify.mjs` can assert against fixed values.
 | Promotions | 200 events, ~6.8 lines each, spanning history and two quarters forward |
 | Funds | 96 funds across 4 fiscal years, 1,793 ledger postings |
 | Deductions | 300 chargebacks, 69 disputes |
+| Forecast | 102 planning lines × 48 fiscal periods, ~37 open recommendations |
 | Gross sales | ~$193M trailing 52 weeks |
 | Trade spend rate | ~12.9% of gross |
 | Volume on deal | ~23% |
@@ -190,8 +237,8 @@ tolerance re-scores the whole book — and writes screenshots to
 `verify-screenshots/`. Console errors fail the run.
 
 ```
-28/28 checks passed            # local dev server
-32/32 checks passed            # against https://www.rsmd365.com/trade-pro/
+36/36 checks passed            # local dev server
+40/40 checks passed            # against https://www.rsmd365.com/trade-pro/
 ```
 
 Point it at any origin:
@@ -200,7 +247,7 @@ Point it at any origin:
 BASE_URL=https://www.rsmd365.com/trade-pro/ node verify.mjs
 ```
 
-Against a deployed origin it adds four checks that each static route returns a
+Against a deployed origin it adds four more checks that each static route returns a
 genuine **HTTP 200** rather than a 404 body that merely happens to render —
 GitHub Pages has no rewrite rules, so the workflow pre-renders each route as a
 real directory.
@@ -240,4 +287,6 @@ Deliberately out of scope — these are the production build's job, not the demo
 - No ERP connectors. The `integ` schema is modelled in `types.ts` but not built.
 - No CSV importer, approval routing engine, or email notifications.
 - Baselines are computed by the engine but the override UI is not built.
+- Forecast edits are not versioned; there is no scenario compare or consensus
+  workflow between demand planning and sales.
 - Edits live in memory only — refresh, or **Reset demo**, restores the seed.

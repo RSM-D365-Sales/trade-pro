@@ -16,7 +16,7 @@ import type {
   ApprovalRule, Approval, AuditEntry, Baseline, CustomerGroup, Dataset,
   ProductGroup,
 } from '../types'
-import { buildFiscalCalendar } from '../../lib/fiscal'
+import { addWeeks, buildFiscalCalendar } from '../../lib/fiscal'
 import { buildAssortment, everydayAllowanceRate, type MarketCell } from './market'
 import { buildFunds, buildFundTransactions, fiscalYearWindows, makeFundResolver } from './funds'
 import { buildPromotions } from './promotions'
@@ -24,6 +24,7 @@ import {
   brandIndex, buildSalesFacts, claimableSpendIndex, plannedSpendIndex,
 } from './sales'
 import { buildDeductions } from './deductions'
+import { buildForecast } from './forecast'
 
 /** The demo's "today". Fixed so screenshots and verify.mjs stay reproducible. */
 export const DEMO_TODAY = '2026-07-30'
@@ -31,7 +32,10 @@ export const DEMO_TODAY = '2026-07-30'
 export const SEED_CONFIG = {
   seed: 20260730,
   calendarStart: '2024-01-01',
-  calendarWeeks: 157,
+  // Four whole fiscal years. The forecast needs a real forward horizon — a
+  // calendar that stops a few periods past today gives a planner nothing to
+  // plan into. History is bounded separately by historyWeeks.
+  calendarWeeks: 209,
   /** Sales facts start here; earlier weeks exist only for fiscal labelling. */
   historyWeeks: 110,
   promotionCount: 200,
@@ -77,7 +81,12 @@ export function buildDataset(): Dataset {
   // 4. Promotions
   const { promotions, lines, statusEvents } = buildPromotions(rng, {
     count: SEED_CONFIG.promotionCount,
-    weekStarts: allWeekStarts.filter((w) => w >= historyWeeks[0]),
+    // Promotions stay in the trailing history plus ~two quarters forward.
+    // Letting them spread across the full four-year calendar would thin the
+    // trade calendar to a handful of bars per customer.
+    weekStarts: allWeekStarts.filter(
+      (w) => w >= historyWeeks[0] && w <= addWeeks(DEMO_TODAY, 26),
+    ),
     today: DEMO_TODAY,
     cellsByCustomer,
     fundIdFor,
@@ -116,7 +125,18 @@ export function buildDataset(): Dataset {
     allBrands: [...new Set(PRODUCTS.map((p) => p.brand))],
   })
 
-  // 8. Approvals & groups & audit
+  // 8. Forecast drivers, derived from the shipment history above so the
+  //    forecast screen and the analytics screen cannot contradict each other.
+  const forecast = buildForecast(rng, {
+    orgId: ORG.id,
+    calendar: fiscalWeeks,
+    today: DEMO_TODAY,
+    salesFacts: facts,
+    promotions,
+    promotionLines: lines,
+  })
+
+  // 9. Approvals & groups & audit
   const approvalRules = buildApprovalRules()
   const approvals = buildApprovals(promotions, approvalRules, plannedSpendByPromotion)
   const { customerGroups, productGroups } = buildGroups()
@@ -146,6 +166,7 @@ export function buildDataset(): Dataset {
     disputes,
     settlements,
     auditLog,
+    forecast,
   }
 }
 

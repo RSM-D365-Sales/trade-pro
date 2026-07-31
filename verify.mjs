@@ -148,6 +148,80 @@ async function main() {
   check(bars > 0, 'calendar renders promotion bars', `${bars} bars`)
   await shot(page, '07-calendar')
 
+  // ── Forecast ───────────────────────────────────────────────────────────
+  console.log('\nForecast')
+  await page.click('a[href$="/forecast"]')
+  await page.waitForSelector('text=Planning group', { timeout: 20000 })
+  await page.waitForTimeout(600)
+
+  const headerCols = await page.locator('thead th').count()
+  check(headerCols > 6, 'forecast grid renders period columns', `${headerCols} columns`)
+  check(
+    (await page.locator('thead th').nth(1).innerText()).includes('w'),
+    'period headers show the week count — the reason this is fiscal, not monthly',
+  )
+
+  // A queue nobody would work is worse than no queue. Read it off the badge,
+  // which carries the number as plain text rather than a CSS-uppercased label.
+  const badge = await page.locator('text=/High urgency:\\s*\\d+/').first().innerText()
+  const high = Number(badge.replace(/[^\d]/g, ''))
+  const subtitle = await page.locator('text=/\\d+ high · \\d+ medium urgency/').first().innerText()
+  const total = (subtitle.match(/\d+/g) ?? []).reduce((a, n) => a + Number(n), 0)
+  check(
+    high > 0 && total > 0 && total < 120,
+    'recommendation queue is populated but workable',
+    `${high} high of ${total} findings`,
+  )
+
+  // Expanding a leaf must reveal the three drivers behind the number.
+  await page.locator('tbody button[aria-expanded]').nth(1).click()
+  await page.waitForTimeout(400)
+  const driverInputs = await page.locator('tbody input[type="number"]').count()
+  check(driverInputs > 0, 'expanding a line reveals its drivers', `${driverInputs} editable cells`)
+
+  const totalBefore = await page.locator('tfoot td').last().innerText()
+  const driver = page.locator('tbody input[type="number"]:not([disabled])').first()
+  await driver.fill('999')
+  await driver.blur()
+  await page.waitForTimeout(500)
+  check(
+    (await page.locator('tfoot td').last().innerText()) !== totalBefore,
+    'editing a driver rolls up to the grand total',
+  )
+  await shot(page, '14-forecast')
+
+  // The level control must genuinely re-pivot the hierarchy.
+  await page.selectOption('select[aria-label="Planning level"]', 'brand_cust')
+  await page.waitForTimeout(500)
+  const brandRow = (await page.locator('tbody tr').first().innerText()).split('\n')[0]
+  check(
+    ['Summit Trail', 'Golden Hour', 'Harvest Table'].some((b) => brandRow.includes(b)),
+    'grid re-pivots to brand → customer',
+    brandRow,
+  )
+  await page.selectOption('select[aria-label="Planning level"]', 'channel_cust_group')
+  await page.waitForTimeout(500)
+  const channelRow = (await page.locator('tbody tr').first().innerText()).split('\n')[0]
+  check(
+    ['Grocery', 'Mass', 'Club', 'Natural', 'Distributor'].some((c) => channelRow.includes(c)),
+    'grid re-pivots to channel → customer → group',
+    channelRow,
+  )
+  await page.selectOption('select[aria-label="Planning level"]', 'cust_group')
+  await page.waitForTimeout(400)
+
+  // Applying a recommendation must move the forecast.
+  await page.locator('button', { hasText: 'View recommendations' }).first().click()
+  await page.waitForTimeout(400)
+  const preApply = await page.locator('tfoot td').last().innerText()
+  await page.locator('button', { hasText: 'Apply' }).first().click()
+  await page.waitForTimeout(600)
+  check(
+    (await page.locator('tfoot td').last().innerText()) !== preApply,
+    'applying a recommendation moves the forecast',
+  )
+  await shot(page, '16-forecast-recs')
+
   // ── Funds ──────────────────────────────────────────────────────────────
   console.log('\nTrade funds')
   await page.click('a[href$="/funds"]')
