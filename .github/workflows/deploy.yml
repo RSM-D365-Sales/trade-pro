@@ -44,13 +44,24 @@ jobs:
           # and the router uses basename={import.meta.env.BASE_URL}.
           BASE_PATH: /trade-pro/
 
-      # GitHub Pages has no SPA rewrite rules, so a deep link like
-      # /trade-pro/deductions returns 404. Pages serves 404.html for unknown
-      # paths, so making it a copy of index.html boots the app and lets the
-      # router resolve the path. Without this, every link shared in an email
-      # or pasted mid-demo breaks.
-      - name: SPA fallback
-        run: cp dist/index.html dist/404.html
+# GitHub Pages has no SPA rewrite rules, so any path that isn't a real file
+      # 404s. Two layers handle that:
+      #
+      # 1. Pre-render each STATIC route as a real directory + index.html, so
+      #    /trade-pro/deductions returns a genuine HTTP 200. This matters
+      #    beyond aesthetics — a 404 status breaks link unfurling in Outlook
+      #    and Teams, which is exactly how a demo link gets shared.
+      # 2. 404.html as a copy of index.html catches everything else, notably
+      #    dynamic routes like /promotions/<id>. The app still boots and the
+      #    router resolves the path; only the status line is wrong.
+      - name: Pre-render static routes + SPA fallback
+        run: |
+          for route in deductions promotions calendar funds analytics settings; do
+            mkdir -p "dist/$route"
+            cp dist/index.html "dist/$route/index.html"
+          done
+          cp dist/index.html dist/404.html
+          echo "Pre-rendered:" && find dist -name index.html | sort
 
       - uses: actions/upload-pages-artifact@v3
         with:

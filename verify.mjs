@@ -231,15 +231,20 @@ async function main() {
   await page.waitForTimeout(700)
   await shot(page, '13-deductions-dark')
 
+  // ── Console health ─────────────────────────────────────────────────────
+  // Snapshot BEFORE the deliberate bad-URL probe below. On GitHub Pages an
+  // unknown path genuinely returns HTTP 404 (served from 404.html), which the
+  // browser logs as a console error — asserting zero errors after that point
+  // would fail on a correctly working deploy.
+  check(consoleErrors.length === 0, 'no console errors during the run',
+    consoleErrors.slice(0, 3).join(' | '))
+
   // ── Deep link + 404 ────────────────────────────────────────────────────
   await page.goto(`${BASE}/nope`, { waitUntil: 'networkidle' })
   check(
     await page.locator("text=That page doesn’t exist").first().isVisible(),
     'unknown route shows a designed 404',
   )
-
-  check(consoleErrors.length === 0, 'no console errors during the run',
-    consoleErrors.slice(0, 3).join(' | '))
 
   await browser.close()
 
