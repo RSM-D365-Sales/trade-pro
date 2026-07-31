@@ -56,7 +56,7 @@ jobs:
       #    router resolves the path; only the status line is wrong.
       - name: Pre-render static routes + SPA fallback
         run: |
-          for route in deductions promotions calendar funds analytics settings; do
+          for route in deductions promotions calendar forecast funds analytics settings; do
             mkdir -p "dist/$route"
             cp dist/index.html "dist/$route/index.html"
           done

@@ -327,7 +327,7 @@ async function main() {
   // meaningful against a deployed origin; dev/preview always answer 200.
   if (!BASE.includes('localhost')) {
     console.log('\nDeployed routing')
-    for (const route of ['deductions', 'promotions', 'analytics', 'funds']) {
+    for (const route of ['deductions', 'promotions', 'forecast', 'analytics', 'funds']) {
       const res = await page.goto(`${BASE}/${route}`, { waitUntil: 'domcontentloaded' })
       check(res?.status() === 200, `/${route} returns HTTP 200`, `got ${res?.status()}`)
     }
