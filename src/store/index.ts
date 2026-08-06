@@ -42,6 +42,8 @@ interface AppState {
   matchOptions: MatchOptions
   matchesByDeduction: Map<string, MatchState>
   theme: Theme
+  /** Sidebar collapsed to an icon rail. Persisted — a presenter sets it once. */
+  sidebarCollapsed: boolean
 
   // derived indexes, rebuilt whenever promotion lines change
   plannedSpend: Map<string, number>
@@ -57,6 +59,8 @@ interface AppState {
 
   // actions
   setTheme: (t: Theme) => void
+  setSidebarCollapsed: (v: boolean) => void
+  toggleSidebar: () => void
   showToast: (message: string, tone?: 'good' | 'critical' | 'neutral') => void
   dismissToast: () => void
   setMatchOptions: (o: Partial<MatchOptions>) => void
@@ -162,6 +166,15 @@ function withForecastLines(
   }
 }
 
+/** Read once at store creation; a demo should open the way it was left. */
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem('tw.sidebar') === 'collapsed'
+  } catch {
+    return false
+  }
+}
+
 let toastId = 0
 
 export const useStore = create<AppState>((set, get) => ({
@@ -169,7 +182,19 @@ export const useStore = create<AppState>((set, get) => ({
   ...initialState(),
   matchOptions: DEFAULT_MATCH_OPTIONS,
   theme: (document.documentElement.getAttribute('data-theme') as Theme) ?? 'light',
+  sidebarCollapsed: readCollapsed(),
   toast: null,
+
+  setSidebarCollapsed: (sidebarCollapsed) => {
+    try {
+      localStorage.setItem('tw.sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
+    } catch {
+      /* private browsing — the toggle still works, it just won't be remembered */
+    }
+    set({ sidebarCollapsed })
+  },
+
+  toggleSidebar: () => get().setSidebarCollapsed(!get().sidebarCollapsed),
 
   setTheme: (theme) => {
     document.documentElement.setAttribute('data-theme', theme)

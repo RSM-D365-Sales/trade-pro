@@ -14,6 +14,10 @@ import { TACTIC_BY_CODE } from '../data/tactics'
 import type {
   Customer, Dataset, Deduction, Fund, Product, Promotion, TacticCode,
 } from '../data/types'
+import {
+  buildCommercialFacts, claimedSpendByCell, type CommercialFact,
+} from '../lib/calc/commercial'
+import type { ForecastPeriod } from '../lib/calc/forecast'
 import { computeAllFundBalances, type FundBalance } from '../lib/calc/funds'
 import { n4, safeDiv } from '../lib/calc/money'
 import { computePromotion, isOffInvoiceTactic, type PromotionEconomics } from '../lib/calc/promotion'
@@ -354,6 +358,58 @@ export function useWaterfall(opts: {
       cogs: base.cogs,
     })
   }, [dataset, economics, sales, opts.chainId, opts.fromWeek, opts.toWeek, rootOf, productsById])
+}
+
+// ── Commercial facts (the sales screen's grain) ────────────────────────────
+
+/**
+ * Shipments joined to allocated trade spend, at customer × product × week.
+ *
+ * Rebuilt whenever the dataset changes rather than cached separately, so an
+ * edit in the planning grid moves net sales, margin and plan attainment on the
+ * sales screen the same way it moves the promotion's own P&L. That is the whole
+ * reason the allocation is derived instead of seeded.
+ */
+export function useCommercialFacts(): CommercialFact[] {
+  const dataset = useStore((s) => s.dataset)
+  const today = useStore((s) => s.today)
+  const economics = usePromotionEconomics()
+  const { rootOf } = useLookups()
+
+  return useMemo(() => {
+    const linesByPromotion = new Map<string, typeof dataset.promotionLines>()
+    for (const l of dataset.promotionLines) {
+      const arr = linesByPromotion.get(l.promotionId)
+      if (arr) arr.push(l)
+      else linesByPromotion.set(l.promotionId, [l])
+    }
+    return buildCommercialFacts(
+      dataset.salesFacts,
+      claimedSpendByCell(dataset.promotions, linesByPromotion, economics, rootOf, today),
+      rootOf,
+    )
+  }, [dataset, economics, rootOf, today])
+}
+
+/** Fiscal periods that carry real shipment history, oldest first. */
+export function useSalesPeriods(): ForecastPeriod[] {
+  const dataset = useStore((s) => s.dataset)
+  return useMemo(() => {
+    const known = new Set(dataset.commercial.periodKeys)
+    return dataset.forecast.periods.filter((p) => known.has(p.key))
+  }, [dataset])
+}
+
+/** Week start → fiscal period key. The join every period rollup needs. */
+export function usePeriodOfWeek(): Map<string, string> {
+  const dataset = useStore((s) => s.dataset)
+  return useMemo(() => {
+    const out = new Map<string, string>()
+    for (const w of dataset.fiscalWeeks) {
+      out.set(w.weekStart, `FY${String(w.fiscalYear).slice(2)} P${String(w.period).padStart(2, '0')}`)
+    }
+    return out
+  }, [dataset.fiscalWeeks])
 }
 
 // ── Spend by tactic ────────────────────────────────────────────────────────

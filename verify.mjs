@@ -237,6 +237,56 @@ async function main() {
   await shot(page, '08-fund-ledger')
   await page.keyboard.press('Escape')
 
+  // ── Sales analytics ────────────────────────────────────────────────────
+  console.log('\nSales analytics')
+  await page.click('a[href$="/sales"]')
+  await page.waitForSelector('text=Net sales vs plan', { timeout: 20000 })
+  await page.waitForTimeout(600)
+
+  const netTile = await page.locator('text=Net sales').first().locator('..').innerText()
+  check(/\$\d/.test(netTile), 'net sales tile shows a dollar figure', netTile.split('\n')[1])
+  check(
+    /of plan/.test(netTile),
+    'net sales is reported against plan, not in isolation',
+  )
+  for (const label of ['Gross profit', 'Gross margin', 'Cases shipped', 'Case fill rate', 'DSO']) {
+    check(
+      await page.locator(`text=${label}`).first().isVisible(),
+      `"${label}" KPI renders`,
+    )
+  }
+  check(
+    await page.locator('text=Territory leaderboard').first().isVisible(),
+    'territory leaderboard renders',
+  )
+  check(
+    await page.locator('text=Accounts needing attention').first().isVisible(),
+    'accounts-needing-attention panel renders',
+  )
+
+  // A 4-4-5 period is not a month. The week count under every column is the
+  // line that lands with a planner, so its absence is a real regression.
+  // textContent, not innerText — SVGElement has no innerText, so allInnerTexts()
+  // silently returns a list of empty strings and the check passes on nothing.
+  const columnAxis = await page.locator('svg text').allTextContents()
+  check(
+    columnAxis.some((t) => /^\d+w$/.test(t) || /of \d+w$/.test(t)),
+    'period columns print their week count',
+    columnAxis.filter((t) => /w$/.test(t)).slice(0, 4).join(' '),
+  )
+
+  // Scope control must actually re-scope, not just re-label.
+  const beforeScope = await page.locator('text=Net sales').first().locator('..').innerText()
+  await page.locator('button', { hasText: /^Fiscal YTD$/ }).first().click()
+  await page.waitForTimeout(500)
+  const afterScope = await page.locator('text=Net sales').first().locator('..').innerText()
+  check(beforeScope !== afterScope, 'changing the scope re-scopes every figure',
+    `${beforeScope.split('\n')[1]} → ${afterScope.split('\n')[1]}`)
+  await shot(page, '17-sales-analytics')
+
+  await page.locator('button', { hasText: /^Quarter to date$/ }).first().click()
+  await page.waitForTimeout(400)
+
   // ── Analytics ──────────────────────────────────────────────────────────
   console.log('\nAnalytics')
   await page.click('a[href$="/analytics"]')
@@ -293,6 +343,41 @@ async function main() {
   await shot(page, '11-command-palette')
   await page.keyboard.press('Escape')
 
+  // ── Sidebar collapse ───────────────────────────────────────────────────
+  // Presenting on a shared screen means reclaiming the rail. Navigation has to
+  // survive the collapse, and the state has to persist a reload — a presenter
+  // who has to re-collapse it on every page is worse off than before.
+  const asideWidth = () => page.locator('aside').first().evaluate((el) => el.clientWidth)
+  const expandedWidth = await asideWidth()
+  await page.click('button[aria-label="Collapse sidebar"]')
+  await page.waitForTimeout(350)
+  const collapsedWidth = await asideWidth()
+  check(
+    collapsedWidth < expandedWidth && collapsedWidth > 0,
+    'sidebar collapses to an icon rail',
+    `${expandedWidth}px → ${collapsedWidth}px`,
+  )
+  check(
+    await page.locator('aside a[href$="/deductions"]').first().isVisible(),
+    'navigation survives the collapse',
+  )
+  await shot(page, '18-sidebar-collapsed')
+
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  check(
+    (await asideWidth()) === collapsedWidth,
+    'collapsed state survives a reload',
+  )
+
+  // Ctrl+\ is the keyboard route back.
+  await page.keyboard.press('Control+\\')
+  await page.waitForTimeout(350)
+  check(
+    (await asideWidth()) === expandedWidth,
+    'Ctrl+\\ toggles the sidebar back open',
+  )
+
   // ── Dark mode ──────────────────────────────────────────────────────────
   await page.click('button[aria-label="Switch to dark mode"]')
   await page.waitForTimeout(400)
@@ -301,6 +386,9 @@ async function main() {
   await page.goto(`${BASE}/analytics`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(700)
   await shot(page, '12-analytics-dark')
+  await page.goto(`${BASE}/sales`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(900)
+  await shot(page, '19-sales-dark')
   await page.goto(`${BASE}/deductions`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(700)
   await shot(page, '13-deductions-dark')
@@ -327,7 +415,7 @@ async function main() {
   // meaningful against a deployed origin; dev/preview always answer 200.
   if (!BASE.includes('localhost')) {
     console.log('\nDeployed routing')
-    for (const route of ['deductions', 'promotions', 'forecast', 'analytics', 'funds']) {
+    for (const route of ['deductions', 'promotions', 'forecast', 'sales', 'analytics', 'funds']) {
       const res = await page.goto(`${BASE}/${route}`, { waitUntil: 'domcontentloaded' })
       check(res?.status() === 200, `/${route} returns HTTP 200`, `got ${res?.status()}`)
     }

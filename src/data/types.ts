@@ -443,6 +443,8 @@ export interface Dataset {
   auditLog: AuditEntry[]
   /** Driver-based forecast. See lib/calc/forecast.ts. */
   forecast: ForecastSlice
+  /** Sales plan, service rates and payment terms. See seed/commercial.ts. */
+  commercial: import('./seed/commercial').CommercialSlice
 }
 
 export interface ForecastSlice {

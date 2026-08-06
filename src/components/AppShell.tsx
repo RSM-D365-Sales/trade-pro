@@ -3,12 +3,17 @@
  *
  * The sidebar order is the demo order — Deductions sits directly under the
  * dashboard because that is the screen the sales motion leads with.
+ *
+ * The sidebar collapses to an icon rail rather than disappearing. Presenting on
+ * a shared screen means giving the content every pixel it can get, but a demo
+ * where navigation vanishes is a demo where the presenter has to remember URLs.
+ * Ctrl/⌘ + \ toggles it — a chord no browser has claimed, unlike Ctrl+B.
  */
 
 import { clsx } from 'clsx'
 import {
   BadgeDollarSign, BarChart3, CalendarRange, Command, LayoutDashboard, LineChart, Moon,
-  ReceiptText, Search, Settings2, Sun, Table2, X,
+  PanelLeftClose, PanelLeftOpen, ReceiptText, Search, Settings2, Sun, Table2, TrendingUp, X,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
@@ -23,7 +28,8 @@ const NAV = [
   { to: '/calendar', label: 'Trade calendar', icon: CalendarRange },
   { to: '/forecast', label: 'Forecast', icon: LineChart },
   { to: '/funds', label: 'Trade funds', icon: BadgeDollarSign },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/sales', label: 'Sales analytics', icon: TrendingUp },
+  { to: '/analytics', label: 'Trade analytics', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings2 },
 ]
 
@@ -32,6 +38,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const theme = useStore((s) => s.theme)
   const setTheme = useStore((s) => s.setTheme)
   const org = useStore((s) => s.dataset.org)
+  const collapsed = useStore((s) => s.sidebarCollapsed)
+  const toggleSidebar = useStore((s) => s.toggleSidebar)
 
   const queueCount = useStore((s) => {
     let n = 0
@@ -48,72 +56,123 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         e.preventDefault()
         setPaletteOpen((v) => !v)
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault()
+        toggleSidebar()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [toggleSidebar])
 
   return (
     <div className="flex h-full">
-      <aside className="flex w-[212px] shrink-0 flex-col border-r border-hairline bg-surface">
-        <div className="flex h-12 items-center gap-2 border-b border-hairline px-3.5">
+      <aside
+        className={clsx(
+          'flex shrink-0 flex-col border-r border-hairline bg-surface transition-[width] duration-150',
+          collapsed ? 'w-[52px]' : 'w-[212px]',
+        )}
+      >
+        <div
+          className={clsx(
+            'flex h-12 items-center border-b border-hairline',
+            collapsed ? 'justify-center px-2' : 'gap-2 px-3.5',
+          )}
+        >
           <Logo />
-          <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold leading-tight tracking-tight text-ink">
-              Tradewind
-            </p>
-            <p className="truncate text-2xs leading-tight text-ink-muted">Trade Promotion Mgmt</p>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold leading-tight tracking-tight text-ink">
+                Tradewind
+              </p>
+              <p className="truncate text-2xs leading-tight text-ink-muted">Trade Promotion Mgmt</p>
+            </div>
+          )}
         </div>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden p-2">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
+              // The label is the accessible name in both states; when collapsed
+              // it also becomes the native tooltip so the rail stays navigable.
+              title={collapsed ? item.label : undefined}
+              aria-label={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 clsx(
-                  'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+                  'relative flex items-center rounded-md py-1.5 text-[13px] font-medium transition-colors',
+                  collapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5',
                   isActive
                     ? 'bg-accent-soft text-accent-ink'
                     : 'text-ink-secondary hover:bg-sunken hover:text-ink',
                 )
               }
             >
-              <item.icon size={15} strokeWidth={1.9} />
-              <span className="flex-1 truncate">{item.label}</span>
+              <item.icon size={15} strokeWidth={1.9} className="shrink-0" />
+              {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
               {item.badge === 'queue' && queueCount > 0 && (
-                <Badge tone="warning">{queueCount}</Badge>
+                collapsed ? (
+                  // A count won't fit on a 52px rail, so the queue keeps a dot.
+                  // Colour alone carries no meaning here — the tooltip and the
+                  // expanded view both state the number.
+                  <span
+                    aria-hidden
+                    className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full ring-2 ring-surface"
+                    style={{ background: 'var(--status-warning)' }}
+                  />
+                ) : (
+                  <Badge tone="warning">{queueCount}</Badge>
+                )
               )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="border-t border-hairline p-2.5">
-          <div className="rounded-md bg-sunken px-2.5 py-2">
-            <p className="truncate text-2xs font-medium text-ink">{org.name}</p>
-            <p className="mt-0.5 text-2xs text-ink-muted">
-              {org.fiscalCalendar} · {org.baseCurrency}
-            </p>
-          </div>
+        <div className={clsx('border-t border-hairline', collapsed ? 'p-2' : 'p-2.5')}>
+          {collapsed ? (
+            <div
+              className="grid h-8 place-items-center rounded-md bg-sunken text-2xs font-semibold text-ink-secondary"
+              title={`${org.name} · ${org.fiscalCalendar} · ${org.baseCurrency}`}
+            >
+              {org.name.slice(0, 2).toUpperCase()}
+            </div>
+          ) : (
+            <div className="rounded-md bg-sunken px-2.5 py-2">
+              <p className="truncate text-2xs font-medium text-ink">{org.name}</p>
+              <p className="mt-0.5 text-2xs text-ink-muted">
+                {org.fiscalCalendar} · {org.baseCurrency}
+              </p>
+            </div>
+          )}
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-hairline bg-surface px-4">
           <button
-            onClick={() => setPaletteOpen(true)}
-            className="flex h-7 w-full max-w-sm items-center gap-2 rounded-md bg-sunken px-2.5 text-xs text-ink-muted ring-1 ring-hairline transition-colors hover:text-ink-secondary"
+            onClick={toggleSidebar}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
+            title={`${collapsed ? 'Expand' : 'Collapse'} sidebar  (Ctrl+\\)`}
+            className="shrink-0 rounded p-1.5 text-ink-muted transition-colors hover:bg-sunken hover:text-ink"
           >
-            <Search size={13} />
-            <span className="flex-1 text-left">Search promotions, customers, deductions…</span>
-            <kbd className="flex items-center gap-0.5 rounded bg-raised px-1 py-0.5 text-2xs text-ink-muted ring-1 ring-hairline">
+            {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          </button>
+
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className="flex h-7 min-w-0 flex-1 max-w-sm items-center gap-2 rounded-md bg-sunken px-2.5 text-xs text-ink-muted ring-1 ring-hairline transition-colors hover:text-ink-secondary"
+          >
+            <Search size={13} className="shrink-0" />
+            <span className="flex-1 truncate text-left">Search promotions, customers, deductions…</span>
+            <kbd className="flex shrink-0 items-center gap-0.5 rounded bg-raised px-1 py-0.5 text-2xs text-ink-muted ring-1 ring-hairline">
               <Command size={9} />K
             </kbd>
           </button>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Badge tone="accent">Demo data</Badge>
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

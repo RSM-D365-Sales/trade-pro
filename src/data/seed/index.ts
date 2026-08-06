@@ -25,12 +25,19 @@ import {
 } from './sales'
 import { buildDeductions } from './deductions'
 import { buildForecast } from './forecast'
+import { buildCommercial } from './commercial'
 
 /** The demo's "today". Fixed so screenshots and verify.mjs stay reproducible. */
 export const DEMO_TODAY = '2026-07-30'
 
 export const SEED_CONFIG = {
   seed: 20260730,
+  /**
+   * Separate stream for the commercial layer. Sharing the main one would make
+   * every promotion, deduction and sales fact in the demo change the moment a
+   * service metric was added — a data set nobody could re-verify.
+   */
+  commercialSeed: 20260731,
   calendarStart: '2024-01-01',
   // Four whole fiscal years. The forecast needs a real forward horizon — a
   // calendar that stops a few periods past today gives a planner nothing to
@@ -136,7 +143,22 @@ export function buildDataset(): Dataset {
     promotionLines: lines,
   })
 
-  // 9. Approvals & groups & audit
+  // 9. Commercial layer — plan, service rates, payment terms.
+  //    Runs on its OWN rng stream (see commercial.ts): threading it through the
+  //    shared one would shift every draw after it and move every number the
+  //    economics tests pin.
+  const commercial = buildCommercial({
+    seed: SEED_CONFIG.commercialSeed,
+    calendar: fiscalWeeks,
+    today: DEMO_TODAY,
+    salesFacts: facts,
+    promotions,
+    promotionLines: lines,
+    products: PRODUCTS,
+    customers: CUSTOMERS,
+  })
+
+  // 10. Approvals & groups & audit
   const approvalRules = buildApprovalRules()
   const approvals = buildApprovals(promotions, approvalRules, plannedSpendByPromotion)
   const { customerGroups, productGroups } = buildGroups()
@@ -167,6 +189,7 @@ export function buildDataset(): Dataset {
     settlements,
     auditLog,
     forecast,
+    commercial,
   }
 }
 

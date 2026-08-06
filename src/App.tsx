@@ -10,6 +10,7 @@ import { FundsPage } from './pages/Funds'
 import { NotFoundPage } from './pages/NotFound'
 import { PlanningPage } from './pages/Planning'
 import { PromotionsPage } from './pages/Promotions'
+import { SalesAnalyticsPage } from './pages/SalesAnalytics'
 import { SettingsPage } from './pages/Settings'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/forecast" element={<ForecastPage />} />
         <Route path="/funds" element={<FundsPage />} />
+        <Route path="/sales" element={<SalesAnalyticsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />

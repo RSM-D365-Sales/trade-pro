@@ -42,11 +42,13 @@ carries a **Demo data** badge so nothing is mistaken for a real commercial recor
 | **Trade calendar** | Customer × week Gantt. Drag to move, drag the trailing edge to extend — both snap to retail weeks. Overlapping events sharing a SKU are outlined in red as you drag. |
 | **Forecast** | Driver-based and multi-level. Every cell is `stores × velocity × seasonality × weeks`, rolling up through a hierarchy you choose — customer → product group, brand → customer, channel → customer → group. Editable drivers, bulk update, and a recommendation queue that compares each assumption against recent actuals. |
 | **Trade funds** | Balances derived from the transaction ledger on every read, never stored. Click any fund to see the postings behind its number. |
-| **Analytics** | Gross-to-net waterfall, quality-of-lift breakdown, spend by tactic, effectiveness leaderboard showing reported ROI struck through next to the true figure. |
+| **Sales analytics** | The commercial leadership view: net sales against a fixed operating plan over eight fiscal periods, gross profit by product group, a territory leaderboard ranked on GP rather than revenue, service and receivables KPIs, and an accounts-needing-attention panel with one finding per account. |
+| **Trade analytics** | Gross-to-net waterfall, quality-of-lift breakdown, spend by tactic, effectiveness leaderboard showing reported ROI struck through next to the true figure. |
 | **Settings** | Retune the matching engine and watch all 300 deductions re-score live. Per-customer reason-code mapping table. |
 
-Plus: `Cmd/Ctrl-K` command palette over the whole dataset, dark mode, designed
-empty states, and a designed 404.
+Plus: `Cmd/Ctrl-K` command palette over the whole dataset, a sidebar that
+collapses to an icon rail (`Ctrl/⌘ + \`, persisted — for presenting on a shared
+screen), dark mode, designed empty states, and a designed 404.
 
 ---
 
@@ -70,6 +72,7 @@ src/
 │       ├── baseline.ts   52-week moving average, promoted weeks excluded
 │       ├── waterfall.ts  gross-to-net
 │       ├── forecast.ts   drivers, hierarchy roll-up, recommendations
+│       ├── commercial.ts one definition of net sales; territory + account signals
 │       └── matching.ts   deduction auto-matching
 ├── store/                zustand store + derived selectors
 ├── components/           ui primitives, charts, planning grid, app shell
@@ -141,6 +144,47 @@ Two things it deliberately does **not** do:
   and lift is owned by the promotion plan. Flagging its own correct behaviour as
   a defect is how a tool teaches people to ignore its warnings.
 
+### The commercial engine — `src/lib/calc/commercial.ts`
+
+The sales screen exists to answer "where is the top line coming from", and the
+only way it earns trust is by not contradicting the trade screens. So there is
+**one definition of net sales**, computed once at customer × product × week:
+
+```
+net sales = gross − allowances taken at invoice − claimed trade money
+gross profit = net sales − COGS
+```
+
+Claimed (bill-back / scan-back / lump-sum) money is **straight-lined across the
+weeks the event was on shelf**, and never past today. Two things fall out of
+that, both of which were bugs before they were decisions:
+
+- Booking spend at settlement would make a good period look great and the next
+  one terrible. Trade money is earned while the event runs; accrual accounting
+  straight-lines it for the same reason.
+- Without the "never past today" bound, an approved promotion running into next
+  quarter posts its whole cost against periods that have not traded, and every
+  forward period reports negative net sales.
+
+It reconciles to the gross-to-net waterfall on Trade analytics with exactly two
+named differences — that screen also carries unrecovered invalid deductions
+inside net sales, and it books each event whole rather than by elapsed week.
+`seed/economics.test.ts` asserts the two land within 1.5% of each other, so they
+cannot silently drift apart.
+
+**The plan is fixed and backward-looking**: last year's actual for the same
+fiscal period, grown at the rate that account actually grew, damped, times an
+ambition factor. It does not move when a promotion is edited — which is exactly
+why editing one moves attainment. Company attainment lands in the high 90s with
+periods either side of 100%, and there is a test for that too; twelve
+consecutive misses reads as a broken plan rather than a book worth discussing.
+
+The **accounts-needing-attention** panel carries the same lesson the forecast
+queue learned the hard way: one finding per account, the most serious one, and
+every threshold measured **relative to this book rather than absolute**. Every
+account in a real CPG business carries deductions; flagging all of them re-sorts
+the customer list by size and tells a sales director nothing.
+
 ### The matching engine — `src/lib/calc/matching.ts`
 
 Weighted-additive scoring over five signals — customer (22%), date window (26%),
@@ -184,9 +228,14 @@ and `verify.mjs` can assert against fixed values.
 | Funds | 96 funds across 4 fiscal years, 1,793 ledger postings |
 | Deductions | 300 chargebacks, 69 disputes |
 | Forecast | 102 planning lines × 48 fiscal periods, ~37 open recommendations |
+| Sales plan | 27 traded fiscal periods × 12 chains, set from prior-year actuals |
+| Territories | 8 key account managers, every chain owned by exactly one |
 | Gross sales | ~$193M trailing 52 weeks |
 | Trade spend rate | ~12.9% of gross |
 | Volume on deal | ~23% |
+| Plan attainment | high 90s, with periods either side of 100% |
+| Case fill rate | ~96%, against a 98% retailer target |
+| DSO | ~35 days, ~3% of receivables past 60 |
 
 The numbers are calibrated, not arbitrary. `src/data/seed/economics.test.ts`
 guards them: a demo dataset can be internally consistent and still be nonsense to
@@ -237,8 +286,8 @@ tolerance re-scores the whole book — and writes screenshots to
 `verify-screenshots/`. Console errors fail the run.
 
 ```
-36/36 checks passed            # local dev server
-40/40 checks passed            # against https://www.rsmd365.com/trade-pro/
+51/51 checks passed            # local dev server
+56/56 checks passed            # against https://www.rsmd365.com/trade-pro/
 ```
 
 Point it at any origin:
@@ -247,10 +296,12 @@ Point it at any origin:
 BASE_URL=https://www.rsmd365.com/trade-pro/ node verify.mjs
 ```
 
-Against a deployed origin it adds four more checks that each static route returns a
+Against a deployed origin it adds a check per static route that each returns a
 genuine **HTTP 200** rather than a 404 body that merely happens to render —
 GitHub Pages has no rewrite rules, so the workflow pre-renders each route as a
-real directory.
+real directory. **That pre-render list in `deploy.yml` is manual**: adding a
+route to the router without adding it there silently drops its deep link to the
+fallback.
 
 ---
 

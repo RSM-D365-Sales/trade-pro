@@ -8,7 +8,7 @@
  * generated demo data and the app labels it as such.
  */
 
-import type { Customer, Org, Product, ReasonCode, User } from './types'
+import type { Customer, ID, Org, Product, ReasonCode, User } from './types'
 
 export const ORG: Org = {
   id: 'org_cascade',
@@ -25,11 +25,42 @@ export const USERS: User[] = [
   { id: 'u_priya', orgId: ORG.id, name: 'Priya Nadkarni', email: 'priya.nadkarni@cascadepantry.example', role: 'kam', initials: 'PN' },
   { id: 'u_tom', orgId: ORG.id, name: 'Tom Beaulieu', email: 'tom.beaulieu@cascadepantry.example', role: 'kam', initials: 'TB' },
   { id: 'u_sasha', orgId: ORG.id, name: 'Sasha Lindqvist', email: 'sasha.lindqvist@cascadepantry.example', role: 'kam', initials: 'SL' },
+  { id: 'u_neil', orgId: ORG.id, name: 'Neil Abrantes', email: 'neil.abrantes@cascadepantry.example', role: 'kam', initials: 'NA' },
+  { id: 'u_gemma', orgId: ORG.id, name: 'Gemma Oyelaran', email: 'gemma.oyelaran@cascadepantry.example', role: 'kam', initials: 'GO' },
+  { id: 'u_luis', orgId: ORG.id, name: 'Luis Ferreira', email: 'luis.ferreira@cascadepantry.example', role: 'kam', initials: 'LF' },
+  { id: 'u_ada', orgId: ORG.id, name: 'Ada Kowalczyk', email: 'ada.kowalczyk@cascadepantry.example', role: 'kam', initials: 'AK' },
+  { id: 'u_ravi', orgId: ORG.id, name: 'Ravi Menon', email: 'ravi.menon@cascadepantry.example', role: 'kam', initials: 'RM' },
   { id: 'u_ben', orgId: ORG.id, name: 'Ben Okonkwo', email: 'ben.okonkwo@cascadepantry.example', role: 'demand_planner', initials: 'BO' },
   { id: 'u_carol', orgId: ORG.id, name: 'Carol Zhu', email: 'carol.zhu@cascadepantry.example', role: 'finance', initials: 'CZ' },
 ]
 
 export const CURRENT_USER_ID = 'u_priya'
+
+/**
+ * Territory book. Every chain belongs to exactly one key account manager, and
+ * every KAM appears here — that invariant is what lets the sales leaderboard
+ * be a genuine rollup of shipment facts rather than a seeded scoreboard.
+ *
+ * The shape is deliberately lopsided: one person carries Walmart and one
+ * carries two distributors, because that is what a real mid-market CPG account
+ * team looks like. It is also why the leaderboard's margin spread is real —
+ * club and distributor territories carry much heavier everyday allowances.
+ */
+export const TERRITORIES: { repId: ID; customerIds: ID[] }[] = [
+  { repId: 'u_priya', customerIds: ['cust_KR'] },
+  { repId: 'u_tom', customerIds: ['cust_WMT'] },
+  { repId: 'u_sasha', customerIds: ['cust_ACI', 'cust_AD'] },
+  { repId: 'u_neil', customerIds: ['cust_CST'] },
+  { repId: 'u_gemma', customerIds: ['cust_PUB', 'cust_HEB'] },
+  { repId: 'u_luis', customerIds: ['cust_TGT'] },
+  { repId: 'u_ada', customerIds: ['cust_SFM', 'cust_WFM'] },
+  { repId: 'u_ravi', customerIds: ['cust_UNFI', 'cust_KEHE'] },
+]
+
+/** Chain → owning KAM. */
+export const REP_BY_CUSTOMER: Record<string, ID> = Object.fromEntries(
+  TERRITORIES.flatMap((t) => t.customerIds.map((c) => [c, t.repId])),
+)
 
 type ChainSpec = {
   code: string
