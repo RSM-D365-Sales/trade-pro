@@ -264,6 +264,29 @@ async function main() {
     'accounts-needing-attention panel renders',
   )
 
+  // ── Cross-filtering: the group chart is also the page filter ───────────
+  // Clicking a product group focuses every additive widget on it. Plan is
+  // customer-level, so attainment must go QUIET under the lens rather than
+  // compare a product slice against a whole-account plan.
+  const groupChart = page.locator('section', { hasText: 'Gross profit by product group' }).last()
+  await groupChart.locator('svg text', { hasText: 'Cold Brew' }).first().click()
+  await page.waitForTimeout(600)
+  check(page.url().includes('group=Cold'), 'clicking a product group writes the lens into the URL')
+  const focusedTile = await page.locator('text=Net sales').first().locator('..').innerText()
+  check(
+    !/of plan/.test(focusedTile),
+    'plan attainment goes quiet under a product lens (plan has no product slice)',
+  )
+  check(
+    await page.locator('text=rolling eight fiscal periods · Cold Brew').first().isVisible(),
+    'rolling net-sales chart re-titles to the focused group',
+  )
+  await groupChart.locator('svg text', { hasText: 'Cold Brew' }).first().click()
+  await page.waitForTimeout(600)
+  check(!page.url().includes('group='), 'clicking the focused group again releases the page')
+  const releasedTile = await page.locator('text=Net sales').first().locator('..').innerText()
+  check(/of plan/.test(releasedTile), 'plan attainment returns once the lens clears')
+
   // A 4-4-5 period is not a month. The week count under every column is the
   // line that lands with a planner, so its absence is a real regression.
   // textContent, not innerText — SVGElement has no innerText, so allInnerTexts()

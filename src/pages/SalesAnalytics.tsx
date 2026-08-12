@@ -74,13 +74,29 @@ export function SalesAnalyticsPage() {
   // still includes the period in flight.
   const [scope, setScope] = useState<Scope>('qtd')
   const chain = params.get('customer') ?? 'all'
-  const setChain = (v: string) => {
+  const group = params.get('group') ?? 'all'
+  const setParam = (key: 'customer' | 'group', v: string) => {
     const next = new URLSearchParams(params)
-    if (v === 'all') next.delete('customer')
-    else next.set('customer', v)
+    if (v === 'all') next.delete(key)
+    else next.set(key, v)
     setParams(next, { replace: true })
   }
+  const setChain = (v: string) => setParam('customer', v)
+  const setGroup = (v: string) => setParam('group', v)
   const scopeChain = chain === 'all' ? undefined : chain
+  /** Product-group lens — set by clicking a bar in "Gross profit by product group". */
+  const scopeGroup = group === 'all' ? undefined : group
+
+  const groupOptions = useMemo(
+    () => [...new Set(dataset.products.map((p) => p.subbrand))].sort(),
+    [dataset.products],
+  )
+  const groupProducts = useMemo(
+    () => (scopeGroup
+      ? new Set(dataset.products.filter((p) => p.subbrand === scopeGroup).map((p) => p.id))
+      : null),
+    [dataset.products, scopeGroup],
+  )
 
   // ── Fiscal scaffolding ──────────────────────────────────────────────────
   const weeksByPeriod = useMemo(() => {
@@ -140,18 +156,42 @@ export function SalesAnalyticsPage() {
   )
 
   // ── Facts in scope ──────────────────────────────────────────────────────
+  /*
+   * Two bases on purpose. Product-additive measures (sales, profit, cases,
+   * deal share) follow the product-group lens; account-level measures (plan,
+   * deductions, receivables, service rates) have no product to land on, so
+   * they stay on the customer-only base and their cards say so. Allocating
+   * them to a product would be the same lie the waterfall note warns about.
+   */
   const inChain = useMemo(
     () => (scopeChain ? facts.filter((f) => f.chainId === scopeChain) : facts),
     [facts, scopeChain],
   )
-  const scoped = useMemo(() => inChain.filter((f) => weekSet.has(f.weekStart)), [inChain, weekSet])
+  const inScope = useMemo(
+    () => (groupProducts ? inChain.filter((f) => groupProducts.has(f.productId)) : inChain),
+    [inChain, groupProducts],
+  )
+  /** Customer-scoped, all products — the base for account-level cards and the group chart. */
+  const scopedAllGroups = useMemo(
+    () => inChain.filter((f) => weekSet.has(f.weekStart)),
+    [inChain, weekSet],
+  )
+  const scoped = useMemo(
+    () => (groupProducts ? scopedAllGroups.filter((f) => groupProducts.has(f.productId)) : scopedAllGroups),
+    [scopedAllGroups, groupProducts],
+  )
   const lastYear = useMemo(
-    () => inChain.filter((f) => lyWeekSet.has(f.weekStart)), [inChain, lyWeekSet],
+    () => inScope.filter((f) => lyWeekSet.has(f.weekStart)), [inScope, lyWeekSet],
   )
 
   const current = useMemo(() => rollup(scoped), [scoped])
   const prior = useMemo(() => rollup(lastYear), [lastYear])
   const byChain = useMemo(() => rollupBy(scoped, (f) => f.chainId), [scoped])
+  /** Whole-account rollup for the window — denominator for account-level rates. */
+  const accountRoll = useMemo(
+    () => (scopeGroup ? rollup(scopedAllGroups) : current),
+    [scopeGroup, scopedAllGroups, current],
+  )
 
   // ── Plan, phased by elapsed weeks ───────────────────────────────────────
   const planIndex = useMemo(
@@ -173,14 +213,17 @@ export function SalesAnalyticsPage() {
   }, [scopeWindow.periods, weeksByPeriod, weekSet, planIndex])
 
   const planTotal = useMemo(() => {
+    // Plan is authored at customer × period. There is no product-group plan to
+    // compare a product lens against, so attainment simply goes quiet.
+    if (scopeGroup) return 0
     const ids = scopeChain ? [scopeChain] : CHAIN_CUSTOMERS.map((c) => c.id)
     return ids.reduce((a, id) => a + (planByChain.get(id) ?? 0), 0)
-  }, [planByChain, scopeChain])
+  }, [planByChain, scopeChain, scopeGroup])
 
   // ── Rolling eight periods ───────────────────────────────────────────────
   const rolling = useMemo(() => {
     const recent = periods.slice(-8)
-    const byPeriod = rollupBy(inChain, (f) => periodOfWeek.get(f.weekStart) ?? null)
+    const byPeriod = rollupBy(inScope, (f) => periodOfWeek.get(f.weekStart) ?? null)
     const chains = scopeChain ? [scopeChain] : CHAIN_CUSTOMERS.map((c) => c.id)
 
     const columns: ColumnDatum[] = []
@@ -193,7 +236,10 @@ export function SalesAnalyticsPage() {
       const elapsed = all.filter((w) => w <= today).length
       const inProgress = elapsed < all.length
       const share = all.length > 0 ? elapsed / all.length : 1
-      const plan = chains.reduce((a, id) => a + (planIndex.get(`${id}|${p.key}`) ?? 0), 0) * share
+      // No plan ticks under a product lens — plan is customer-level.
+      const plan = scopeGroup
+        ? 0
+        : chains.reduce((a, id) => a + (planIndex.get(`${id}|${p.key}`) ?? 0), 0) * share
 
       columns.push({
         key: p.key,
@@ -212,11 +258,13 @@ export function SalesAnalyticsPage() {
     }
 
     return { columns, margins }
-  }, [periods, inChain, periodOfWeek, weeksByPeriod, planIndex, scopeChain, today])
+  }, [periods, inScope, periodOfWeek, weeksByPeriod, planIndex, scopeChain, scopeGroup, today])
 
   // ── Gross profit by product group ───────────────────────────────────────
+  // Built from ALL groups even when one is selected — the chart is the filter
+  // control, and a filter that hides its own alternatives cannot be undone.
   const groupMix = useMemo(() => {
-    const byGroup = rollupBy(scoped, (f) => productsById.get(f.productId)?.subbrand ?? null)
+    const byGroup = rollupBy(scopedAllGroups, (f) => productsById.get(f.productId)?.subbrand ?? null)
     return [...byGroup.entries()]
       .map(([name, r]) => ({ name, roll: r }))
       .sort((a, b) => b.roll.grossProfit - a.roll.grossProfit)
@@ -231,7 +279,7 @@ export function SalesAnalyticsPage() {
           { label: 'GP / case', value: e.roll.gpPerCase !== null ? `$${e.roll.gpPerCase.toFixed(2)}` : '—' },
         ],
       }))
-  }, [scoped, productsById])
+  }, [scopedAllGroups, productsById])
 
   // ── Rep leaderboard ─────────────────────────────────────────────────────
   const reps = useMemo(() => {
@@ -244,8 +292,10 @@ export function SalesAnalyticsPage() {
         customerIds: scopeChain ? t.customerIds.filter((c) => c === scopeChain) : t.customerIds,
       }
     }).filter((r) => r.customerIds.length > 0)
-    return rankReps(roster, byChain, planByChain)
-  }, [byChain, planByChain, usersById, scopeChain])
+    // Under a product lens the rollups are group-sliced but plan is not, so
+    // attainment is withheld rather than compared against the wrong base.
+    return rankReps(roster, byChain, scopeGroup ? new Map() : planByChain)
+  }, [byChain, planByChain, usersById, scopeChain, scopeGroup])
 
   const marginFloor = useMemo(() => {
     const company = current.grossMarginPct ?? DEFAULT_ATTENTION.companyMarginPct
@@ -259,11 +309,14 @@ export function SalesAnalyticsPage() {
   const belowFloorCount = reps.filter((r) => (r.rollup.grossMarginPct ?? 1) < marginFloor).length
 
   // ── Service & quality ───────────────────────────────────────────────────
+  // Orders, fill and OTIF are how a retailer scores the ACCOUNT — an order
+  // carries every product on the truck, so these stay on the all-products
+  // base and the card is labelled when a product lens is active.
   const service = useMemo(() => {
     const rateIndex = new Map(
       dataset.commercial.service.map((s) => [`${s.customerId}|${s.periodKey}`, s]),
     )
-    const casesByCell = rollupBy(scoped, (f) => {
+    const casesByCell = rollupBy(scopedAllGroups, (f) => {
       const p = periodOfWeek.get(f.weekStart)
       return p ? `${f.chainId}|${p}` : null
     })
@@ -290,14 +343,14 @@ export function SalesAnalyticsPage() {
       otif: orders > 0 ? onTimeOrders / orders : null,
       orders,
       linesPerOrder: orders > 0 ? lines / orders : null,
-      dropSize: orders > 0 ? current.netSales / orders : null,
+      dropSize: orders > 0 ? accountRoll.netSales / orders : null,
       daysOfSupply: median(
         scopeWindow.periods
           .map((p) => dataset.commercial.daysOfSupply.find((d) => d.periodKey === p.key)?.days)
           .filter((v): v is number => v !== undefined),
       ),
     }
-  }, [dataset.commercial, scoped, periodOfWeek, current.netSales, scopeWindow.periods])
+  }, [dataset.commercial, scopedAllGroups, periodOfWeek, accountRoll.netSales, scopeWindow.periods])
 
   // ── Receivables (trailing quarter, point in time) ───────────────────────
   const receivables = useMemo(() => {
@@ -339,10 +392,12 @@ export function SalesAnalyticsPage() {
     return {
       value,
       count: rows.length,
-      rate: current.netSales > 0 ? value / current.netSales : null,
+      // A chargeback arrives against the account, not a product — the rate is
+      // read against whole-account net sales even under a product lens.
+      rate: accountRoll.netSales > 0 ? value / accountRoll.netSales : null,
       unresolved: rows.filter((r) => !r.match.resolved && r.match.disposition !== 'auto_matched').length,
     }
-  }, [deductions, scopeWindow.weeks, scopeChain, current.netSales])
+  }, [deductions, scopeWindow.weeks, scopeChain, accountRoll.netSales])
 
   // ── Accounts needing attention ──────────────────────────────────────────
   /**
@@ -383,6 +438,12 @@ export function SalesAnalyticsPage() {
       else groupsByChain.set(f.chainId, new Set([group]))
     }
 
+    /*
+     * Under a product lens, volume and margin are checked within the lens —
+     * "Albertsons' Cold Brew is down 12%" is a real finding. Plan, deduction
+     * and assortment checks apply to the whole account, so their inputs are
+     * neutralised rather than compared against a product-sized denominator.
+     */
     const inputs: AccountInput[] = CHAIN_CUSTOMERS
       .filter((c) => !scopeChain || c.id === scopeChain)
       .map((c) => {
@@ -394,9 +455,9 @@ export function SalesAnalyticsPage() {
           netSalesComparable: lyByChain.get(c.id)?.netSales ?? 0,
           netSalesAnnual: annualByChain.get(c.id)?.netSales ?? 0,
           grossMarginPct: roll?.grossMarginPct ?? null,
-          planNetSales: planByChain.get(c.id) ?? 0,
-          openDeductions: atRiskByChain.get(c.id) ?? 0,
-          productGroupsBought: groupsByChain.get(c.id)?.size ?? 0,
+          planNetSales: scopeGroup ? 0 : planByChain.get(c.id) ?? 0,
+          openDeductions: scopeGroup ? 0 : atRiskByChain.get(c.id) ?? 0,
+          productGroupsBought: scopeGroup ? groupCount : groupsByChain.get(c.id)?.size ?? 0,
           productGroupsAvailable: groupCount,
         }
       })
@@ -413,7 +474,7 @@ export function SalesAnalyticsPage() {
     })
   }, [
     byChain, lastYear, scoped, planByChain, atRiskByChain, annualByChain, productsById,
-    groupCount, scopeChain, current.grossMarginPct,
+    groupCount, scopeChain, scopeGroup, current.grossMarginPct,
   ])
 
   // ── Header copy ─────────────────────────────────────────────────────────
@@ -438,7 +499,7 @@ export function SalesAnalyticsPage() {
         title="Sales analytics"
         description={
           currentPeriod
-            ? `${dataset.org.name} · ${currentPeriod.key} (${currentPeriod.sublabel}) · week ${elapsed} of ${totalWeeks} · ${SCOPE_LABEL[scope].toLowerCase()} through ${formatDate(today)}`
+            ? `${dataset.org.name} · ${currentPeriod.key} (${currentPeriod.sublabel}) · week ${elapsed} of ${totalWeeks} · ${SCOPE_LABEL[scope].toLowerCase()} through ${formatDate(today)}${scopeGroup ? ` · focused on ${scopeGroup}` : ''}`
             : dataset.org.name
         }
         filters={
@@ -458,6 +519,16 @@ export function SalesAnalyticsPage() {
               options={[
                 { value: 'all', label: 'All customers' },
                 ...CHAIN_CUSTOMERS.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+            />
+            <Select
+              ariaLabel="Filter by product group"
+              className="w-44"
+              value={group}
+              onChange={setGroup}
+              options={[
+                { value: 'all', label: 'All product groups' },
+                ...groupOptions.map((g) => ({ value: g, label: g })),
               ]}
             />
           </>
@@ -522,7 +593,7 @@ export function SalesAnalyticsPage() {
             value={service.fillRate !== null ? pct(service.fillRate) : '—'}
             delta={service.otif !== null ? `${pct(service.otif)} OTIF` : undefined}
             deltaTone={(service.fillRate ?? 0) >= 0.97 ? 'good' : 'warning'}
-            hint="target 98.0%"
+            hint={scopeGroup ? 'target 98.0% · whole account' : 'target 98.0%'}
             accent={(service.fillRate ?? 0) >= 0.97 ? 'var(--status-good)' : 'var(--status-warning)'}
           />
           <StatTile
@@ -530,7 +601,9 @@ export function SalesAnalyticsPage() {
             value={credits.rate !== null ? pct(credits.rate) : '—'}
             delta={`${credits.count} received`}
             deltaTone="neutral"
-            hint={`${money(credits.value, { compact: true })} of net sales`}
+            hint={scopeGroup
+              ? `${money(credits.value, { compact: true })} · whole account`
+              : `${money(credits.value, { compact: true })} of net sales`}
             accent="var(--status-serious)"
           />
           <StatTile
@@ -538,15 +611,19 @@ export function SalesAnalyticsPage() {
             value={receivables.days !== null ? `${receivables.days.toFixed(1)} days` : '—'}
             delta={`${money(receivables.pastDue, { compact: true })} past 60 days`}
             deltaTone={receivables.pastDue / Math.max(1, receivables.balance) > 0.05 ? 'warning' : 'neutral'}
-            hint="trailing 13 weeks"
+            hint={scopeGroup ? 'trailing 13 weeks · whole account' : 'trailing 13 weeks'}
             accent={seriesColor(4)}
           />
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <ColumnChart
-            title="Net sales vs plan — rolling eight fiscal periods"
-            subtitle="Plan is phased by elapsed weeks, so an in-progress period is compared like for like. Gross margin runs underneath on its own scale — never a second axis."
+            title={scopeGroup
+              ? `Net sales — rolling eight fiscal periods · ${scopeGroup}`
+              : 'Net sales vs plan — rolling eight fiscal periods'}
+            subtitle={scopeGroup
+              ? 'Plan ticks are hidden under a product lens — the plan is set per customer and has no product-group slice to compare against.'
+              : 'Plan is phased by elapsed weeks, so an in-progress period is compared like for like. Gross margin runs underneath on its own scale — never a second axis.'}
             data={rolling.columns}
             format={(v) => money(v, { compact: true })}
             valueLabel="Net sales"
@@ -562,11 +639,15 @@ export function SalesAnalyticsPage() {
 
           <BarChart
             title="Gross profit by product group"
-            subtitle="Where the margin actually comes from — net of every allowance, not list price"
+            subtitle={scopeGroup
+              ? `Focused on ${scopeGroup} — click it again (or set the filter to all) to release the page`
+              : 'Where the margin actually comes from — net of every allowance, not list price. Click a group to focus the whole page on it.'}
             data={groupMix}
             format={(v) => money(v, { compact: true })}
             labelWidth={128}
             tableValueHead="Gross profit"
+            onSelect={(key) => setGroup(key === group ? 'all' : key)}
+            selectedKey={scopeGroup}
           />
         </div>
 
@@ -667,7 +748,9 @@ export function SalesAnalyticsPage() {
             <div className="border-b border-hairline px-4 py-2.5">
               <SectionHeader
                 title="Service and quality"
-                subtitle="What the retailer's supply chain scores us on"
+                subtitle={scopeGroup
+                  ? 'Whole account — an order carries every product on the truck, so service is not sliced by product'
+                  : "What the retailer's supply chain scores us on"}
               />
             </div>
             <ul className="divide-y divide-hairline/60">
@@ -720,8 +803,10 @@ export function SalesAnalyticsPage() {
         <Card padded={false} className="overflow-hidden">
           <div className="flex items-start justify-between gap-3 border-b border-hairline px-4 py-2.5">
             <SectionHeader
-              title="Accounts needing attention"
-              subtitle="One finding per account — the most serious one. A panel that says the same thing three ways is a panel people stop reading."
+              title={scopeGroup ? `Accounts needing attention · ${scopeGroup}` : 'Accounts needing attention'}
+              subtitle={scopeGroup
+                ? `Volume and margin are checked within ${scopeGroup}. Plan, deduction and assortment checks are account-level and pause under a product lens.`
+                : 'One finding per account — the most serious one. A panel that says the same thing three ways is a panel people stop reading.'}
             />
             <Badge tone={signals.length > 0 ? 'warning' : 'good'}>
               {signals.length} flagged
@@ -799,8 +884,11 @@ export function SalesAnalyticsPage() {
             beside it — most trade money here is everyday off-invoice allowance that never appears
             on a promotion calendar. Fill rate, drop size and payment terms are seeded assumptions;
             the order counts, receivables and margins derived from them move when the underlying
-            volume moves. Every figure on this page is synthetic sample data for a fictional
-            manufacturer — nothing here is a real commercial record.
+            volume moves. Clicking a product group focuses everything additive — sales, profit,
+            cases, the leaderboard, the attention checks on volume and margin — while plan,
+            deductions, receivables and service stay at account level and say so, because none of
+            them lands on a single product. Every figure on this page is synthetic sample data for
+            a fictional manufacturer — nothing here is a real commercial record.
           </p>
         </div>
       </PageBody>
