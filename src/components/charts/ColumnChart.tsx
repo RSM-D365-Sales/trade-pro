@@ -46,7 +46,7 @@ const STRIP_GAP = 10
 export function ColumnChart({
   data, title, subtitle, format, height = 250, valueLabel = 'Actual',
   targetLabel = 'Plan', color = 'var(--series-1)', strip, actions, className,
-  onSelect, selectedKey,
+  onSelect, selectedKey, labelEvery = 1,
 }: {
   data: ColumnDatum[]
   title: ReactNode
@@ -61,6 +61,8 @@ export function ColumnChart({
   className?: string
   onSelect?: (key: string) => void
   selectedKey?: string
+  /** Draw every nth axis label — for many narrow columns in a tight card. */
+  labelEvery?: number
 }) {
   const { ref: sizeRef, width } = useChartSize(700)
   const { ref: hoverRef, tip, show, hide } = useChartTooltip()
@@ -240,7 +242,7 @@ export function ColumnChart({
             )}
 
             <g aria-hidden>
-              {data.map((d, i) => (
+              {data.map((d, i) => (i % labelEvery !== 0 ? null : (
                 <g key={d.key}>
                   <text
                     x={bandX(i) + band / 2} y={height - (d.sublabel ? 14 : 8)}
@@ -257,7 +259,7 @@ export function ColumnChart({
                     </text>
                   )}
                 </g>
-              ))}
+              )))}
             </g>
           </svg>
         </div>

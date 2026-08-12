@@ -148,6 +148,8 @@ export function ChartFrame({
 export interface TooltipState {
   x: number
   y: number
+  /** Width of the hover container, so the tooltip can clamp to its right edge. */
+  w: number
   content: ReactNode
 }
 
@@ -158,7 +160,7 @@ export function useChartTooltip() {
   const show = useCallback((e: { clientX: number; clientY: number }, content: ReactNode) => {
     const box = ref.current?.getBoundingClientRect()
     if (!box) return
-    setTip({ x: e.clientX - box.left, y: e.clientY - box.top, content })
+    setTip({ x: e.clientX - box.left, y: e.clientY - box.top, w: box.width, content })
   }, [])
 
   const hide = useCallback(() => setTip(null), [])
@@ -173,7 +175,9 @@ export function ChartTooltip({ tip, width = 210 }: { tip: TooltipState | null; w
       role="tooltip"
       className="pointer-events-none absolute z-30 rounded-md bg-surface p-2 text-2xs shadow-pop ring-1 ring-hairline"
       style={{
-        left: Math.max(4, tip.x - width / 2),
+        // Centred on the cursor, clamped to the container so a chart sitting
+        // against the viewport edge (the sidebar cards) never clips a value.
+        left: Math.max(4, Math.min(tip.x - width / 2, tip.w - width - 4)),
         top: Math.max(4, tip.y - 12),
         width,
         transform: 'translateY(-100%)',

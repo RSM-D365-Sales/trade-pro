@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  applyRecommendation, bulkScaleDriver, buildForecastPeriods, buildForecastTree,
-  buildRecommendations, forecastUnits, lineUnits, setDriver, summariseRecommendations,
-  totalsByPeriod,
+  applyRecommendation, bulkScaleDriver, buildForecastAccuracy, buildForecastPeriods,
+  buildForecastTree, buildRecommendations, forecastUnits, lineUnits, setDriver,
+  summariseRecommendations, totalsByPeriod,
   type ActualSignal, type ForecastLine, type ForecastPeriod, type TreeContext,
 } from './forecast'
 import { buildFiscalCalendar } from '../fiscal'
@@ -160,6 +160,84 @@ describe('editing drivers', () => {
     expect(out[0].periods.P1.baseVelocityWeekly).toBeCloseTo(2.2, 4)
     expect(out[0].periods.P2.baseVelocityWeekly).toBe(2) // untouched period
     expect(out[1].periods.P1.baseVelocityWeekly).toBe(2) // untouched line
+  })
+})
+
+describe('forecast accuracy', () => {
+  // line() defaults: P1 = 100 stores × 2 cs × 1.0 → 800 units over 4 weeks,
+  // P2 = 100 × 2 × 1.2 → 1200 units over 5 weeks.
+  const p1 = period('P1', 4, true)
+  const p2 = period('P2', 5, true)
+
+  it('scores a perfect lock as 100% with zero bias', () => {
+    const a = buildForecastAccuracy([line('a', { lockedUnits: { P1: 800 } })], [p1])
+    expect(a.periods[0].forecastUnits).toBe(800)
+    expect(a.periods[0].actualUnits).toBe(800)
+    expect(a.periods[0].accuracy).toBe(1)
+    expect(a.weightedAccuracy).toBe(1)
+    expect(a.bias).toBe(0)
+  })
+
+  it('scores a 10% over-forecast as 90% accuracy and +10% bias', () => {
+    const a = buildForecastAccuracy([line('a', { lockedUnits: { P1: 880 } })], [p1])
+    expect(a.periods[0].accuracy).toBeCloseTo(0.9, 6)
+    expect(a.bias).toBeCloseTo(0.1, 6)
+  })
+
+  it('does NOT let opposite misses cancel — accuracy is accumulated per line', () => {
+    const a = buildForecastAccuracy(
+      [
+        line('a', { lockedUnits: { P1: 880 } }), // +10%
+        line('b', { lockedUnits: { P1: 720 } }), // −10%
+      ],
+      [p1],
+    )
+    // Netted, the plan looks perfect; measured line by line it missed by 10%.
+    expect(a.periods[0].forecastUnits).toBe(1600)
+    expect(a.periods[0].actualUnits).toBe(1600)
+    expect(a.periods[0].accuracy).toBeCloseTo(0.9, 6)
+    expect(a.bias).toBeCloseTo(0, 6)
+  })
+
+  it('excludes lines that carry no locked snapshot for the period', () => {
+    const a = buildForecastAccuracy(
+      [line('a', { lockedUnits: { P1: 800 } }), line('b')],
+      [p1],
+    )
+    // Line b never had a locked plan — scoring it would invent a miss.
+    expect(a.periods[0].actualUnits).toBe(800)
+    expect(a.periods[0].accuracy).toBe(1)
+  })
+
+  it('skips open periods entirely — there is nothing to score yet', () => {
+    const a = buildForecastAccuracy(
+      [line('a', { lockedUnits: { P1: 800, P2: 1200 } })],
+      [p1, { ...p2, isPast: false }],
+    )
+    expect(a.periods).toHaveLength(1)
+    expect(a.periods[0].key).toBe('P1')
+  })
+
+  it('returns null accuracy when no line was locked for the period', () => {
+    const a = buildForecastAccuracy([line('a')], [p1])
+    expect(a.periods[0].accuracy).toBeNull()
+    expect(a.weightedAccuracy).toBeNull()
+    expect(a.bias).toBeNull()
+  })
+
+  it('floors accuracy at zero rather than reporting a negative percentage', () => {
+    const a = buildForecastAccuracy([line('a', { lockedUnits: { P1: 2000 } })], [p1])
+    expect(a.periods[0].accuracy).toBe(0)
+  })
+
+  it('weights the summary by actual volume, not by period count', () => {
+    const a = buildForecastAccuracy(
+      [line('a', { lockedUnits: { P1: 720, P2: 1200 } })], // P1 misses 10%, P2 perfect
+      [p1, p2],
+    )
+    // 80 units missed of 2,000 actual — not the unweighted mean of 90% and 100%.
+    expect(a.weightedAccuracy).toBeCloseTo(1 - 80 / 2000, 6)
+    expect(a.bias).toBeCloseTo(-80 / 2000, 6)
   })
 })
 

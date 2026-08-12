@@ -110,6 +110,13 @@ export interface ForecastLine {
   periods: Record<string, PeriodDrivers>
   /** Set once a planner touches a cell, so overrides survive a recompute. */
   overrides: Record<string, Partial<Record<DriverField, true>>>
+  /**
+   * Units the plan showed for a period at the moment it locked, one period
+   * before it opened. Closed periods only. Accuracy is measured against THIS
+   * number — grading today's drivers against actuals would score a forecast
+   * that has already been corrected with hindsight.
+   */
+  lockedUnits?: Record<string, number>
 }
 
 export const EMPTY_DRIVERS: PeriodDrivers = {
@@ -268,6 +275,81 @@ export function totalsByPeriod(
     for (const p of periods) out[p.key] = n4(out[p.key] + n.units[p.key])
   }
   return out
+}
+
+// ── Forecast accuracy ──────────────────────────────────────────────────────
+
+export interface AccuracyPeriod {
+  key: string
+  label: string
+  sublabel: string
+  weeks: number
+  /** What the locked plan promised, summed across lines. */
+  forecastUnits: number
+  /** Driver-derived actuals — the same figure the grid's ACT columns show. */
+  actualUnits: number
+  /**
+   * 1 − Σ|miss| ÷ Σactual, accumulated LINE BY LINE and floored at zero.
+   * Measured per line so an over-forecast at one customer cannot cancel an
+   * under-forecast at another — the netted version flatters every plan.
+   */
+  accuracy: number | null
+}
+
+export interface AccuracySummary {
+  periods: AccuracyPeriod[]
+  /** The per-period accuracy measure, volume-weighted across the window. */
+  weightedAccuracy: number | null
+  /** Σ(forecast − actual) ÷ Σactual, signed. Positive = plan runs hot. */
+  bias: number | null
+}
+
+/**
+ * Score the locked forecast against closed-period actuals.
+ *
+ * Only lines that carry a locked snapshot for a period participate — scoring
+ * a line the plan never covered would invent a miss out of nothing. Open
+ * periods have no actuals and are skipped entirely.
+ */
+export function buildForecastAccuracy(
+  lines: ForecastLine[],
+  periods: ForecastPeriod[],
+): AccuracySummary {
+  const rows: AccuracyPeriod[] = periods
+    .filter((p) => p.isPast)
+    .map((p) => {
+      let forecast = 0
+      let actual = 0
+      let absMiss = 0
+      for (const line of lines) {
+        const locked = line.lockedUnits?.[p.key]
+        if (locked === undefined) continue
+        const act = lineUnits(line, p)
+        forecast += locked
+        actual += act
+        absMiss += Math.abs(locked - act)
+      }
+      return {
+        key: p.key,
+        label: p.label,
+        sublabel: p.sublabel,
+        weeks: p.weeks,
+        forecastUnits: n4(forecast),
+        actualUnits: n4(actual),
+        accuracy: actual > 0 ? n4(Math.max(0, 1 - absMiss / actual)) : null,
+      }
+    })
+
+  const scored = rows.filter((r) => r.accuracy !== null)
+  const sumActual = scored.reduce((a, r) => a + r.actualUnits, 0)
+  const sumMiss = scored.reduce((a, r) => a + (1 - r.accuracy!) * r.actualUnits, 0)
+  const sumSigned = scored.reduce((a, r) => a + (r.forecastUnits - r.actualUnits), 0)
+
+  return {
+    periods: rows,
+    weightedAccuracy: sumActual > 0 ? n4(Math.max(0, 1 - sumMiss / sumActual)) : null,
+    bias: sumActual > 0 ? n4(sumSigned / sumActual) : null,
+  }
 }
 
 // ── Editing ────────────────────────────────────────────────────────────────

@@ -15,11 +15,11 @@
 import { CHAIN_CUSTOMERS, PRODUCTS } from '../catalog'
 import type { Dataset, FiscalWeek, SalesFact } from '../types'
 import {
-  EMPTY_DRIVERS, buildForecastPeriods,
+  EMPTY_DRIVERS, buildForecastPeriods, forecastUnits,
   type ActualSignal, type ForecastLine, type ForecastPeriod, type PeriodDrivers,
 } from '../../lib/calc/forecast'
 import { n4 } from '../../lib/calc/money'
-import type { Rng } from '../rng'
+import { makeRng, type Rng } from '../rng'
 
 /**
  * Product groups are subbrands — "Chocolate", "Protein Bars". That is the
@@ -118,6 +118,19 @@ export function buildForecast(
   const lines: ForecastLine[] = []
   const signals = new Map<string, ActualSignal>()
 
+  /*
+   * Locked-forecast noise comes from its OWN seeded stream, never the main
+   * one. Splicing extra draws into the shared sequence would shift every
+   * number generated after this file — including the recommendation counts
+   * the demo script quotes — and verify.mjs asserts against fixed anchors.
+   */
+  const lockRng = makeRng(0x1f0c_a557)
+  const closedPeriods = periods.filter((p) => p.isPast)
+  // Common-cause misses (a heat wave, a shifted holiday) hit every line in a
+  // period together. Without this shared term, independent line noise cancels
+  // across a hundred lines and historic accuracy reads an implausible ~100%.
+  const commonMiss = new Map(closedPeriods.map((p) => [p.key, lockRng.float(0.975, 1.025)]))
+
   for (const [k, cell] of cells) {
     const [customerId, groupId] = k.split('|')
     const chain = chainById.get(customerId)
@@ -195,16 +208,6 @@ export function buildForecast(
       }
     })
 
-    const lineId = `fl_${lines.length}`
-    lines.push({
-      id: lineId,
-      orgId: opts.orgId,
-      customerId,
-      productGroupId: groupId,
-      periods: drivers,
-      overrides: {},
-    })
-
     // ── The actual signal the recommendation engine compares against ──
     //
     // Most of a real plan is fine. Only a minority of lines have genuinely
@@ -217,19 +220,63 @@ export function buildForecast(
     const velocityDrifts = rng.chance(0.18)
     const distributionDrifts = rng.chance(0.14)
 
+    const actualVelocityWeekly = n4(
+      baseVelocityWeekly *
+        (velocityDrifts ? rng.pick([rng.float(0.68, 0.85), rng.float(1.15, 1.34)]) : rng.float(0.99, 1.01)),
+    )
+    const actualStores = Math.min(
+      footprint,
+      Math.round(
+        storesSelling *
+          (distributionDrifts ? rng.pick([rng.float(0.7, 0.86), rng.float(1.14, 1.3)]) : rng.float(0.995, 1.005)),
+      ),
+    )
+
+    /*
+     * ── The forecast as it was LOCKED, for closed periods ──
+     *
+     * Accuracy cannot be scored against today's drivers — those were fitted
+     * from the very actuals being scored, and the plan would grade itself
+     * perfect. What gets kept is the number the plan showed when the period
+     * locked, reconstructed from the same drift the recommendation engine
+     * measures: a line whose velocity ran away from the plan was mis-forecast
+     * by exactly that gap while the drift emerged. So the accuracy chart dips
+     * in recent periods on the very lines the queue is flagging — one story,
+     * told twice.
+     */
+    const planToActual =
+      (actualVelocityWeekly > 0 ? baseVelocityWeekly / actualVelocityWeekly : 1) *
+      (actualStores > 0 ? storesSelling / actualStores : 1)
+    const lockedUnits: Record<string, number> = {}
+    closedPeriods.forEach((p, i) => {
+      // Drift emerged over the last quarter: full effect in the newest closed
+      // period, fading to nothing four periods back.
+      const fromEnd = closedPeriods.length - 1 - i
+      const ramp = fromEnd === 0 ? 1 : fromEnd === 1 ? 0.6 : fromEnd === 2 ? 0.25 : 0
+      const actual = forecastUnits(drivers[p.key], p.weeks)
+      lockedUnits[p.key] = Math.max(0, Math.round(
+        actual *
+          (1 + (planToActual - 1) * ramp) *
+          (commonMiss.get(p.key) ?? 1) *
+          lockRng.float(0.93, 1.07),
+      ))
+    })
+
+    const lineId = `fl_${lines.length}`
+    lines.push({
+      id: lineId,
+      orgId: opts.orgId,
+      customerId,
+      productGroupId: groupId,
+      periods: drivers,
+      overrides: {},
+      lockedUnits,
+    })
+
     signals.set(lineId, {
       lineId,
-      actualVelocityWeekly: n4(
-        baseVelocityWeekly *
-          (velocityDrifts ? rng.pick([rng.float(0.68, 0.85), rng.float(1.15, 1.34)]) : rng.float(0.99, 1.01)),
-      ),
-      actualStores: Math.min(
-        footprint,
-        Math.round(
-          storesSelling *
-            (distributionDrifts ? rng.pick([rng.float(0.7, 0.86), rng.float(1.14, 1.3)]) : rng.float(0.995, 1.005)),
-        ),
-      ),
+      actualVelocityWeekly,
+      actualStores,
       sampleWeeks: recentWindow.length,
     })
   }

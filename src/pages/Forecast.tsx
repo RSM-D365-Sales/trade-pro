@@ -10,6 +10,7 @@
 import { AlertTriangle, Check, LineChart as LineChartIcon, Sparkles, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { ColumnChart } from '../components/charts/ColumnChart'
 import { LineChart } from '../components/charts/LineChart'
 import { seriesColor } from '../components/charts/frame'
 import { ForecastGrid, ForecastLegend } from '../components/forecast/ForecastGrid'
@@ -19,7 +20,7 @@ import {
   StatTile, StatusBadge,
 } from '../components/ui'
 import {
-  buildForecastTree, summariseRecommendations, totalsByPeriod,
+  buildForecastAccuracy, buildForecastTree, summariseRecommendations, totalsByPeriod,
   type DriverField, type GroupDimension, type TreeContext,
 } from '../lib/calc/forecast'
 import { units as fmtUnits, pct } from '../lib/calc/money'
@@ -53,6 +54,7 @@ export function ForecastPage() {
   const [chain, setChain] = useState('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [showRecs, setShowRecs] = useState(false)
+  const [chartView, setChartView] = useState<'accuracy' | 'plan'>('accuracy')
 
   const { forecast } = dataset
   const groupById = useMemo(
@@ -117,6 +119,16 @@ export function ForecastPage() {
       firstOpenIndex: periods.findIndex((p) => !p.isPast),
     }
   }, [periods, totals])
+
+  // ── Forecast vs actual — the horizon control mirrored backwards ──
+  //
+  // Scored on the same lines the grid shows, so the customer filter applies
+  // here too. The window is trailing CLOSED periods: 12 forward ⇒ 12 back.
+  const accuracy = useMemo(() => {
+    const closed = forecast.periods.filter((p) => p.isPast)
+    const back = horizon === 'all' ? closed.length : Number(horizon)
+    return buildForecastAccuracy(lines, closed.slice(-back))
+  }, [forecast.periods, lines, horizon])
 
   const onDriverChange = (
     lineId: string, periodKey: string, field: DriverField, value: number,
@@ -356,27 +368,89 @@ export function ForecastPage() {
               )}
             </Card>
 
-            <LineChart
-              title="Forecast by period"
-              subtitle={`Shaded periods are closed actuals · as at ${today}`}
-              labels={trend.labels}
-              series={[
-                {
-                  key: 'fcst',
-                  label: 'Total cases',
-                  color: seriesColor(0),
-                  values: trend.values,
-                  area: true,
-                },
-              ]}
-              format={(v) => `${fmtUnits(v, true)}`}
-              height={200}
-              bands={
-                trend.firstOpenIndex > 0
-                  ? [{ from: 0, to: trend.firstOpenIndex - 1, label: 'Closed actuals' }]
-                  : undefined
-              }
-            />
+            {chartView === 'accuracy' ? (
+              <ColumnChart
+                title={
+                  <span className="flex items-center gap-1.5">
+                    Forecast vs actual
+                    <InfoTip>
+                      Each closed period is scored against the plan as it stood when the period
+                      locked — never against today's drivers, which have already been corrected
+                      with hindsight. Accuracy is accumulated line by line, so an over-forecast
+                      at one customer cannot cancel an under-forecast at another. Bias is the
+                      netted miss: positive means the plan runs hot.
+                    </InfoTip>
+                  </span>
+                }
+                subtitle={
+                  accuracy.weightedAccuracy === null
+                    ? 'No closed periods with a locked plan in view'
+                    : `${accuracy.periods.length} closed periods · accuracy ${pct(accuracy.weightedAccuracy, 1)} · bias ${accuracy.bias! >= 0 ? '+' : ''}${pct(accuracy.bias!, 1)}`
+                }
+                data={accuracy.periods.map((r) => ({
+                  key: r.key,
+                  label: r.label,
+                  sublabel: `${r.sublabel.slice(0, 3)} ${r.sublabel.slice(-2)}`,
+                  value: r.actualUnits,
+                  target: r.forecastUnits,
+                }))}
+                valueLabel="Actual"
+                targetLabel="Locked forecast"
+                color={seriesColor(0)}
+                strip={{
+                  label: 'Accuracy',
+                  values: accuracy.periods.map((r) => r.accuracy),
+                  format: (v) => pct(v, 1),
+                }}
+                format={(v) => `${fmtUnits(v, true)}`}
+                height={256}
+                labelEvery={Math.max(1, Math.ceil(accuracy.periods.length / 6))}
+                actions={
+                  <Segmented<'accuracy' | 'plan'>
+                    size="sm"
+                    value={chartView}
+                    onChange={setChartView}
+                    options={[
+                      { value: 'accuracy', label: 'vs actual' },
+                      { value: 'plan', label: 'Plan' },
+                    ]}
+                  />
+                }
+              />
+            ) : (
+              <LineChart
+                title="Forecast by period"
+                subtitle={`Shaded periods are closed actuals · as at ${today}`}
+                labels={trend.labels}
+                series={[
+                  {
+                    key: 'fcst',
+                    label: 'Total cases',
+                    color: seriesColor(0),
+                    values: trend.values,
+                    area: true,
+                  },
+                ]}
+                format={(v) => `${fmtUnits(v, true)}`}
+                height={200}
+                bands={
+                  trend.firstOpenIndex > 0
+                    ? [{ from: 0, to: trend.firstOpenIndex - 1, label: 'Closed actuals' }]
+                    : undefined
+                }
+                actions={
+                  <Segmented<'accuracy' | 'plan'>
+                    size="sm"
+                    value={chartView}
+                    onChange={setChartView}
+                    options={[
+                      { value: 'accuracy', label: 'vs actual' },
+                      { value: 'plan', label: 'Plan' },
+                    ]}
+                  />
+                }
+              />
+            )}
 
             <Card>
               <SectionHeader
