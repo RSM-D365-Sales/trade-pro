@@ -173,6 +173,26 @@ async function main() {
     `${high} high of ${total} findings`,
   )
 
+  // ── Actuals + forecast trend under the grid ─────────────────────────────
+  // Solid actuals, dashed forecast, one timeline. Collapsible because a
+  // presenter working the grid does not always want the picture below it.
+  check(
+    await page.locator('text=Actuals and forecast').first().isVisible(),
+    'actuals-and-forecast trend section renders under the grid',
+  )
+  await page.click('[aria-label="Collapse actuals and forecast"]')
+  await page.waitForTimeout(300)
+  check(
+    await page.locator('text=/\\d+ closed periods · \\d+ forecast/').first().isVisible(),
+    'trend section collapses to a slim summary row',
+  )
+  await page.locator('text=Actuals and forecast').first().click()
+  await page.waitForTimeout(300)
+  check(
+    await page.locator('[aria-label="Collapse actuals and forecast"]').first().isVisible(),
+    'trend section expands again from the summary row',
+  )
+
   // Expanding a leaf must reveal the three drivers behind the number.
   await page.locator('tbody button[aria-expanded]').nth(1).click()
   await page.waitForTimeout(400)

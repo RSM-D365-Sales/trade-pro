@@ -7,7 +7,9 @@
  * maintaining a separate number.
  */
 
-import { AlertTriangle, Check, LineChart as LineChartIcon, Sparkles, X } from 'lucide-react'
+import {
+  AlertTriangle, Check, ChevronDown, ChevronUp, LineChart as LineChartIcon, Sparkles, X,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { ColumnChart } from '../components/charts/ColumnChart'
@@ -55,6 +57,23 @@ export function ForecastPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [showRecs, setShowRecs] = useState(false)
   const [chartView, setChartView] = useState<'accuracy' | 'plan'>('accuracy')
+  /** The trend section under the grid. Persisted — a presenter sets it once. */
+  const [showTrend, setShowTrend] = useState(() => {
+    try {
+      return localStorage.getItem('tw.forecastTrend') !== 'collapsed'
+    } catch {
+      return true
+    }
+  })
+  const toggleTrend = () =>
+    setShowTrend((v) => {
+      try {
+        localStorage.setItem('tw.forecastTrend', v ? 'collapsed' : 'expanded')
+      } catch {
+        /* private browsing — the toggle still works, it just won't be remembered */
+      }
+      return !v
+    })
 
   const { forecast } = dataset
   const groupById = useMemo(
@@ -129,6 +148,32 @@ export function ForecastPage() {
     const back = horizon === 'all' ? closed.length : Number(horizon)
     return buildForecastAccuracy(lines, closed.slice(-back))
   }, [forecast.periods, lines, horizon])
+
+  // ── Actuals + forecast, drawn as one timeline ──
+  //
+  // Solid actuals stop at the last closed period; the dashed forecast runs the
+  // whole window — the locked plan through history (so it can disagree with
+  // actuals, which is the point) and the live driver plan forward.
+  const trendChart = useMemo(() => {
+    const open = periods.filter((p) => !p.isPast)
+    const tag = (label: string, sublabel: string) =>
+      `${label} ${sublabel.slice(0, 3)} ${sublabel.slice(-2)}`
+    return {
+      closedCount: accuracy.periods.length,
+      labels: [
+        ...accuracy.periods.map((r) => tag(r.label, r.sublabel)),
+        ...open.map((p) => tag(p.label, p.sublabel)),
+      ],
+      actual: [
+        ...accuracy.periods.map((r) => r.actualUnits),
+        ...open.map(() => null),
+      ] as (number | null)[],
+      forecast: [
+        ...accuracy.periods.map((r) => r.forecastUnits),
+        ...open.map((p) => totals[p.key] ?? 0),
+      ] as (number | null)[],
+    }
+  }, [accuracy.periods, periods, totals])
 
   const onDriverChange = (
     lineId: string, periodKey: string, field: DriverField, value: number,
@@ -209,6 +254,7 @@ export function ForecastPage() {
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="min-w-0 space-y-4">
           <Card padded={false} className="overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">
               <ForecastLegend>
@@ -261,6 +307,65 @@ export function ForecastPage() {
               />
             )}
           </Card>
+
+          {/* ── Actuals and forecast — the grid drawn as a timeline ── */}
+          {showTrend ? (
+            <LineChart
+              title="Actuals and forecast"
+              subtitle={`Solid actuals across ${trendChart.closedCount} closed periods · the dashed line is the locked plan through history and the live driver plan forward`}
+              labels={trendChart.labels}
+              series={[
+                {
+                  key: 'actual',
+                  label: 'Actual',
+                  color: seriesColor(0),
+                  values: trendChart.actual,
+                },
+                {
+                  key: 'forecast',
+                  label: 'Forecast',
+                  color: seriesColor(1),
+                  values: trendChart.forecast,
+                  dashed: true,
+                },
+              ]}
+              format={(v) => `${fmtUnits(v, true)}`}
+              height={240}
+              bands={
+                trendChart.closedCount > 0
+                  ? [{ from: 0, to: trendChart.closedCount - 1, label: 'Closed actuals' }]
+                  : undefined
+              }
+              actions={
+                <button
+                  onClick={toggleTrend}
+                  aria-expanded
+                  aria-label="Collapse actuals and forecast"
+                  title="Collapse"
+                  className="rounded p-1 text-ink-muted transition-colors hover:bg-sunken hover:text-ink-secondary"
+                >
+                  <ChevronUp size={13} />
+                </button>
+              }
+            />
+          ) : (
+            <button
+              onClick={toggleTrend}
+              aria-expanded={false}
+              className="flex w-full items-center justify-between gap-3 rounded-lg bg-surface px-4 py-2.5 text-left ring-1 ring-hairline shadow-card transition-colors hover:bg-sunken"
+            >
+              <span className="min-w-0">
+                <span className="text-[13px] font-semibold tracking-tight text-ink">
+                  Actuals and forecast
+                </span>
+                <span className="ml-2 text-xs text-ink-muted">
+                  {trendChart.closedCount} closed periods · {trendChart.labels.length - trendChart.closedCount} forecast
+                </span>
+              </span>
+              <ChevronDown size={13} className="shrink-0 text-ink-muted" />
+            </button>
+          )}
+          </div>
 
           <div className="space-y-4">
             <Card>
