@@ -108,7 +108,7 @@ export function buildSalesFacts(
     const cellDips = dipWeeks.get(key)
 
     opts.weekStarts.forEach((weekStart, i) => {
-      const seasonal = seasonalFactor(product.category, weekStart)
+      const seasonal = seasonalFactor(product.subbrand, weekStart)
       const trend = trendFactor(product.brand, i)
       const noise = rng.normal(1, 0.11)
       const baseUnits = cell.baseVelocity * seasonal * trend * noise

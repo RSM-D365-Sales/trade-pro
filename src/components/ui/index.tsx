@@ -30,7 +30,7 @@ const TONE_TEXT: Record<Tone, string> = {
   serious: 'text-serious',
   critical: 'text-critical',
   neutral: 'text-ink-secondary',
-  accent: 'text-accent',
+  accent: 'text-accent-ink',
 }
 
 const TONE_CHIP: Record<Tone, string> = {
@@ -60,7 +60,7 @@ export function Button({
         'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors',
         'disabled:cursor-not-allowed disabled:opacity-45',
         size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-8 px-3 text-[13px]',
-        variant === 'primary' && 'bg-accent text-white hover:bg-accent-ink',
+        variant === 'primary' && 'bg-accent-ink text-white hover:bg-midnight',
         variant === 'secondary' &&
           'bg-raised text-ink ring-1 ring-hairline hover:bg-sunken',
         variant === 'ghost' && 'text-ink-secondary hover:bg-sunken hover:text-ink',

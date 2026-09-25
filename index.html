@@ -3,17 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tradewind TPM — Trade Promotion Management</title>
-    <meta name="description" content="ERP-agnostic trade promotion management and deduction recovery for mid-market CPG." />
-    <!-- Inline so there is no favicon round-trip (and no 404) on any base path. -->
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232a78d6'/%3E%3Cpath d='M5.5 15.5c2.6 0 2.6-3.4 5.2-3.4s2.6 3.4 5.2 3.4 2.6-3.4 2.6-3.4' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' fill='none'/%3E%3Cpath d='M5.5 10.2c2.6 0 2.6-2.6 5.2-2.6s2.6 2.6 5.2 2.6 2.6-2.6 2.6-2.6' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' fill='none' opacity='.55'/%3E%3C/svg%3E"
+    <title>Trade Promotion Management · Bluestem Fresh Produce</title>
+    <meta
+      name="description"
+      content="Bluestem Fresh Produce Trade Promotion Management — plan it, fund it, match it. Calendar-cool."
     />
+    <meta name="theme-color" content="#00153D" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/brand/favicon_64.png" />
+    <link rel="apple-touch-icon" href="/brand/bluestem_icon_blue.png" />
     <script>
       // Set theme before first paint to avoid a flash.
       try {
-        var t = localStorage.getItem('tw.theme')
+        var t = localStorage.getItem('bstpm.theme')
         if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
         document.documentElement.setAttribute('data-theme', t)
         if (t === 'dark') document.documentElement.classList.add('dark')

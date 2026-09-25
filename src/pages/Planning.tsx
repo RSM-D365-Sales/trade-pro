@@ -114,7 +114,7 @@ export function PlanningPage() {
         title={`${promotion.code} — ${promotion.name}`}
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link to="/promotions" className="inline-flex items-center gap-1 text-accent hover:underline">
+            <Link to="/promotions" className="inline-flex items-center gap-1 text-accent-ink hover:underline">
               <ArrowLeft size={11} /> All promotions
             </Link>
             <span aria-hidden>·</span>
@@ -326,7 +326,7 @@ export function PlanningPage() {
                     <li key={c.promotion.id} className="rounded-md bg-warning/8 p-2 ring-1 ring-inset ring-warning/20">
                       <Link
                         to={`/promotions/${c.promotion.id}`}
-                        className="text-xs font-medium text-accent hover:underline"
+                        className="text-xs font-medium text-accent-ink hover:underline"
                       >
                         {c.promotion.code}
                       </Link>

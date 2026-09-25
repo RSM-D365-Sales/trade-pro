@@ -112,7 +112,7 @@ function MatchPanelBody({ row }: { row: EnrichedDeduction }) {
           <KeyValue label="Description">{deduction.description}</KeyValue>
           <KeyValue label="Backup document">
             {deduction.backupDocUrl ? (
-              <span className="inline-flex items-center gap-1 text-accent">
+              <span className="inline-flex items-center gap-1 text-accent-ink">
                 <FileText size={11} /> attached
               </span>
             ) : (
@@ -273,7 +273,7 @@ function CandidateCard({
           <div className="flex flex-wrap items-center gap-1.5">
             <Link
               to={`/promotions/${candidate.promotionId}`}
-              className="inline-flex items-center gap-1 text-[13px] font-semibold text-accent hover:underline"
+              className="inline-flex items-center gap-1 text-[13px] font-semibold text-accent-ink hover:underline"
             >
               {candidate.promotionCode}
               <ArrowUpRight size={12} />

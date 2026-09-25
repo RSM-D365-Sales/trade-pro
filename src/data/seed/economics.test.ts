@@ -19,9 +19,10 @@ import { buildWaterfall } from '../../lib/calc/waterfall'
  *
  * A demo dataset can be internally consistent and still be nonsense to anyone
  * who knows the industry — half a billion in revenue for a "mid-market"
- * prospect, or a 3% trade rate when the real range is 12–20%. A CPG trade
- * finance person reads these numbers in the first thirty seconds, and getting
- * them wrong costs more credibility than a missing feature would.
+ * prospect, a 50% gross margin on fresh produce, or a 3% trade rate when a
+ * produce supplier's gross-to-net really runs 8–15%. A produce finance person
+ * reads these numbers in the first thirty seconds, and getting them wrong costs
+ * more credibility than a missing feature would.
  */
 describe('demo tenant economics', () => {
   const ds = buildDataset()
@@ -45,16 +46,22 @@ describe('demo tenant economics', () => {
     expect(gross).toBeLessThan(300_000_000)
   })
 
-  it('runs a trade spend rate in the real 10–20% range', () => {
+  it('runs a trade spend rate in the 8–16% range a produce supplier actually sees', () => {
+    // Lower than branded CPG's 12–20%: produce carries less feature money and
+    // more everyday allowance, but the gross-to-net gap is still the number
+    // finance argues about.
     const tradeRate = (promoSpend + offInvoice) / gross
-    expect(tradeRate).toBeGreaterThan(0.1)
-    expect(tradeRate).toBeLessThan(0.2)
+    expect(tradeRate).toBeGreaterThan(0.08)
+    expect(tradeRate).toBeLessThan(0.16)
   })
 
-  it('keeps gross margin in a credible CPG range', () => {
+  it('keeps gross margin in a credible fresh-produce range', () => {
+    // Packed fresh runs ~30% standard margin and fresh-cut ~40% in the item
+    // master; the blend lands in the mid-30s. A 50% margin would read as a
+    // snack company wearing a produce label.
     const grossMarginPct = (gross - cogs) / gross
-    expect(grossMarginPct).toBeGreaterThan(0.4)
-    expect(grossMarginPct).toBeLessThan(0.55)
+    expect(grossMarginPct).toBeGreaterThan(0.28)
+    expect(grossMarginPct).toBeLessThan(0.45)
   })
 
   it('sells a realistic share of volume on deal', () => {
@@ -176,9 +183,12 @@ describe('commercial layer', () => {
     expect(sales.grossSales).toBeCloseTo(waterfall.steps[0].value, 2)
 
     // Straddling events are the ONLY reason the allocated figure differs from
-    // the whole-event figure, so it must stay within a few points.
+    // the whole-event figure: the waterfall books an in-flight event whole,
+    // the sales screen books only its elapsed weeks. At a September as-of date
+    // the fall programs are mid-flight, so the gap runs wider than it does in
+    // a quiet month — but it is bounded, and it is explained on the page.
     const claimedRatio = sales.claimedSpend / (billScan + fixed)
-    expect(claimedRatio).toBeGreaterThan(0.85)
+    expect(claimedRatio).toBeGreaterThan(0.8)
     expect(claimedRatio).toBeLessThan(1.15)
 
     // Add the deduction line back and the two top lines agree.
@@ -264,7 +274,7 @@ describe('commercial layer', () => {
     expect(fill).toBeLessThan(0.98)
   })
 
-  it('carries receivables a mid-market CPG finance team would recognise', () => {
+  it('carries receivables a mid-market produce finance team would recognise', () => {
     expect(ds.commercial.receivables).toHaveLength(CHAIN_CUSTOMERS.length)
     for (const r of ds.commercial.receivables) {
       expect(r.dsoDays).toBeGreaterThan(14)
@@ -317,7 +327,7 @@ describe('forecast grounding', () => {
 
   it('produces planning lines across customers and product groups', () => {
     expect(forecast.lines.length).toBeGreaterThan(40)
-    expect(forecast.productGroups.length).toBe(9)
+    expect(forecast.productGroups.length).toBe(10)
     expect(new Set(forecast.lines.map((l) => l.customerId)).size).toBeGreaterThan(8)
   })
 

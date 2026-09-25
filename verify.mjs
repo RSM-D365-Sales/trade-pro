@@ -58,7 +58,7 @@ async function main() {
   // and pass in production. The router's basename is stripped of its trailing
   // slash (see main.tsx) so the app renders either way if a host serves both.
   check(
-    await page.locator('text=Cascade Pantry Co.').first().isVisible(),
+    await page.locator('text=Bluestem Fresh Produce').first().isVisible(),
     'demo tenant is named in the shell',
   )
   const atRisk = await page.locator('text=Deductions at risk').first().locator('..').innerText()
@@ -215,7 +215,7 @@ async function main() {
   await page.waitForTimeout(500)
   const brandRow = (await page.locator('tbody tr').first().innerText()).split('\n')[0]
   check(
-    ['Summit Trail', 'Golden Hour', 'Harvest Table'].some((b) => brandRow.includes(b)),
+    ['Bluestem Orchard', 'Bluestem Fields', 'Bluestem Fresh Cuts'].some((b) => brandRow.includes(b)),
     'grid re-pivots to brand → customer',
     brandRow,
   )
@@ -289,19 +289,19 @@ async function main() {
   // customer-level, so attainment must go QUIET under the lens rather than
   // compare a product slice against a whole-account plan.
   const groupChart = page.locator('section', { hasText: 'Gross profit by product group' }).last()
-  await groupChart.locator('svg text', { hasText: 'Cold Brew' }).first().click()
+  await groupChart.locator('svg text', { hasText: 'Salads' }).first().click()
   await page.waitForTimeout(600)
-  check(page.url().includes('group=Cold'), 'clicking a product group writes the lens into the URL')
+  check(page.url().includes('group=Salads'), 'clicking a product group writes the lens into the URL')
   const focusedTile = await page.locator('text=Net sales').first().locator('..').innerText()
   check(
     !/of plan/.test(focusedTile),
     'plan attainment goes quiet under a product lens (plan has no product slice)',
   )
   check(
-    await page.locator('text=rolling eight fiscal periods · Cold Brew').first().isVisible(),
+    await page.locator('text=rolling eight fiscal periods · Salads').first().isVisible(),
     'rolling net-sales chart re-titles to the focused group',
   )
-  await groupChart.locator('svg text', { hasText: 'Cold Brew' }).first().click()
+  await groupChart.locator('svg text', { hasText: 'Salads' }).first().click()
   await page.waitForTimeout(600)
   check(!page.url().includes('group='), 'clicking the focused group again releases the page')
   const releasedTile = await page.locator('text=Net sales').first().locator('..').innerText()
@@ -379,7 +379,7 @@ async function main() {
   console.log('\nShell')
   await page.keyboard.press('Control+k')
   await page.waitForSelector('input[placeholder*="Search promotions"]', { timeout: 5000 })
-  await page.keyboard.type('Kroger')
+  await page.keyboard.type('Northwind')
   await page.waitForTimeout(350)
   const paletteHits = await page.locator('div[role="dialog"] li').count()
   check(paletteHits > 0, 'command palette searches the dataset', `${paletteHits} results`)

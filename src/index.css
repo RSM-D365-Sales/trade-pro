@@ -3,93 +3,119 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
-   Design tokens.
-   Categorical series slots are the validated dataviz palette — assigned in
-   FIXED ORDER, never cycled. Both modes are selected (the dark column is the
-   same eight hues re-stepped for the dark surface, not an automatic flip).
-   Validated with scripts/validate_palette.js: light + dark both PASS.
-   Light mode carries a contrast WARN on slots 3/4/5, so every chart using them
-   ships direct labels or a table view (the "relief rule").
+   Design tokens — Bluestem Fresh Produce brand (BRAND_GUIDE.md v2; palette
+   borrowed from rsmus.com so every app on the show floor reads as RSM-built).
+
+   Chrome: Fog page, white cards, Midnight header and headings, Poppins
+   SemiBold headings over Segoe UI body (matches D365 F&SC).
+
+   Interactive accent is RSM Blue. It is only 2.9:1 on white, so it is used
+   for fills, the active-nav bar, focus rings and chart series 1 — anything
+   that has to be READ (link text, solid buttons) uses the deeper accent-ink
+   step, exactly as the sibling Bluestem apps do.
+
+   Categorical series slots follow the brand's chart order (Blue → Green →
+   lifted Midnight → Amber → Mid Grey) and are assigned in FIXED ORDER, never
+   cycled. Pure Midnight fails the lightness band next to blue and green, so
+   slot 3 is a lifted step of the navy family; slots 6–8 are tints of the
+   primaries. Slots 5–8 sit under 3:1 on white, so every chart ships direct
+   labels or a table view (the "relief rule").
 --------------------------------------------------------------------------- */
 :root {
   color-scheme: light;
 
-  --plane: #f9f9f7;
-  --surface-0: #f2f1ed;
-  --surface-1: #fcfcfb;
-  --surface-2: #ffffff;
+  --font-body: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-head: 'Poppins', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
 
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #898781;
+  --plane: #f2f3f4;        /* Fog */
+  --surface-0: #e9ebee;    /* sunken */
+  --surface-1: #ffffff;    /* cards */
+  --surface-2: #ffffff;    /* raised */
 
-  --hairline: rgba(11, 11, 11, 0.1);
-  --gridline: #e1e0d9;
-  --baseline: #c3c2b7;
+  --text-primary: #0b1a33;
+  --text-secondary: #4a5566;
+  --text-muted: #6b717b;   /* Mid Grey stepped down to 4.5:1 on white */
 
-  --accent: #2a78d6;
-  --accent-soft: #eaf2fd;
-  --accent-ink: #184f95;
+  --hairline: rgba(0, 21, 61, 0.12);
+  --gridline: #e3e6e9;
+  --baseline: #c4c9ce;
 
-  --status-good: #0ca30c;
-  --status-warning: #fab219;
-  --status-serious: #ec835a;
-  --status-critical: #d03b3b;
-  --delta-up: #006300;
+  --midnight: #00153d;
 
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --series-4: #eda100;
-  --series-5: #e87ba4;
-  --series-6: #008300;
-  --series-7: #4a3aa7;
-  --series-8: #e34948;
+  --accent: #009cde;       /* RSM Blue */
+  --accent-soft: #e5f5fc;  /* Light Sky */
+  --accent-ink: #00739f;
 
-  /* Sequential ramp (single hue, light→dark) for magnitude encoding. */
-  --seq-100: #cde2fb;
-  --seq-200: #9ec5f4;
-  --seq-300: #6da7ec;
-  --seq-400: #3987e5;
-  --seq-500: #256abf;
-  --seq-600: #184f95;
-  --seq-700: #0d366b;
+  --status-good: #3f9c35;      /* RSM Green */
+  --status-warning: #f2a900;   /* Harvest Amber */
+  --status-serious: #e06b1f;
+  --status-critical: #d0342c;  /* Signal Red */
+  --delta-up: #2a6b23;
+
+  --series-1: #009cde;
+  --series-2: #3f9c35;
+  --series-3: #3a4fa8;
+  --series-4: #f2a900;
+  --series-5: #888b8d;
+  --series-6: #00153d;
+  --series-7: #7fcdee;
+  --series-8: #a3cf8e;
+
+  /* Sequential ramp (RSM Blue family, light→dark) for magnitude encoding. */
+  --seq-100: #e5f5fc;
+  --seq-200: #b3e2f5;
+  --seq-300: #7fcdee;
+  --seq-400: #33b0e5;
+  --seq-500: #009cde;
+  --seq-600: #00739f;
+  --seq-700: #00153d;
 }
 
+/* Dark mode per the brand guide: Midnight ground, #0B2454 surfaces, white and
+   #C9D1DB text, Blue / Green / Amber / Red unchanged. */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --plane: #0d0d0d;
-  --surface-0: #131312;
-  --surface-1: #1a1a19;
-  --surface-2: #222220;
+  --plane: #00153d;
+  --surface-0: #06204d;
+  --surface-1: #0b2454;
+  --surface-2: #123061;
 
   --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --text-muted: #898781;
+  --text-secondary: #c9d1db;
+  --text-muted: #8e9bb0;
 
-  --hairline: rgba(255, 255, 255, 0.1);
-  --gridline: #2c2c2a;
-  --baseline: #383835;
+  --hairline: rgba(255, 255, 255, 0.12);
+  --gridline: #1d3a6b;
+  --baseline: #2f4d7d;
 
-  --accent: #3987e5;
-  --accent-soft: #14243a;
-  --accent-ink: #9ec5f4;
+  --accent: #009cde;
+  --accent-soft: #0e3a5c;
+  --accent-ink: #7fcdee;
 
-  --status-good: #0ca30c;
-  --status-warning: #fab219;
+  --status-good: #5cb84f;
+  --status-warning: #f2a900;
   --status-serious: #ec835a;
-  --status-critical: #d03b3b;
-  --delta-up: #0ca30c;
+  --status-critical: #e0554d;
+  --delta-up: #5cb84f;
 
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --series-4: #c98500;
-  --series-5: #d55181;
-  --series-6: #008300;
-  --series-7: #9085e9;
-  --series-8: #e66767;
+  --series-1: #2fb4ea;
+  --series-2: #5cb84f;
+  --series-3: #6b7fd1;
+  --series-4: #f2a900;
+  --series-5: #a5a8ab;
+  --series-6: #dfe6ee;
+  --series-7: #7fcdee;
+  --series-8: #a3cf8e;
+
+  /* Same family, reversed so intensity still reads on a dark ground. */
+  --seq-100: #0e3a5c;
+  --seq-200: #00739f;
+  --seq-300: #008ec9;
+  --seq-400: #009cde;
+  --seq-500: #33b0e5;
+  --seq-600: #7fcdee;
+  --seq-700: #e5f5fc;
 }
 
 html,
@@ -101,6 +127,13 @@ body,
 body {
   @apply bg-plane text-ink font-sans antialiased;
   font-size: 14px;
+}
+
+/* Headings and the wordmark are Poppins SemiBold; everything else stays Segoe. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-head);
 }
 
 /* Tabular figures wherever numbers must align vertically. */

@@ -1,5 +1,10 @@
 /**
- * Application shell: sidebar, top bar, command palette, toast host.
+ * Application shell: Midnight title ribbon, sidebar, command palette, toasts.
+ *
+ * The ribbon follows the Bluestem app-header pattern every app in the family
+ * shares (BRAND_GUIDE.md): bluestem mark and wordmark on the left, the app name
+ * in Poppins, and on the right the RSM "Powered by" sponsor mark immediately
+ * left of the user avatar, separated from the other controls by a divider.
  *
  * The sidebar order is the demo order — Deductions sits directly under the
  * dashboard because that is the screen the sales motion leads with.
@@ -18,8 +23,14 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 
+import rsmLogo from '../assets/rsmus-logo-white.png'
+import { CURRENT_USER_ID, USER_BY_ID } from '../data/catalog'
 import { useStore } from '../store'
 import { Badge, Button } from './ui'
+
+export const APP_NAME = 'Trade Promotion Management'
+/** The D365 environment this tenant reads from — the same string the sibling apps show. */
+const ENV_LABEL = 'D365 F&SC · BFP-UAT'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -40,6 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const org = useStore((s) => s.dataset.org)
   const collapsed = useStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useStore((s) => s.toggleSidebar)
+  const me = USER_BY_ID.get(CURRENT_USER_ID)!
 
   const queueCount = useStore((s) => {
     let n = 0
@@ -66,131 +78,138 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [toggleSidebar])
 
   return (
-    <div className="flex h-full">
-      <aside
-        className={clsx(
-          'flex shrink-0 flex-col border-r border-hairline bg-surface transition-[width] duration-150',
-          collapsed ? 'w-[52px]' : 'w-[212px]',
-        )}
-      >
-        <div
+    <div className="flex h-full flex-col">
+      {/* ── Title ribbon: Midnight in both themes ── */}
+      <header className="flex h-12 shrink-0 items-center gap-3 bg-midnight px-3 text-white">
+        <button
+          onClick={toggleSidebar}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+          title={`${collapsed ? 'Expand' : 'Collapse'} sidebar  (Ctrl+\\)`}
+          className="shrink-0 rounded p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+        </button>
+
+        <div className="flex min-w-0 shrink-0 items-center gap-2.5">
+          <BluestemMark />
+          {/* On Midnight the wordmark reads white "blue" + green "stem" (brand guide). */}
+          <span
+            className="-ml-1 font-head text-[20px] font-semibold leading-none tracking-tight"
+            aria-label="bluestem"
+          >
+            blue<span style={{ color: '#3F9C35' }}>stem</span>
+          </span>
+          <span aria-hidden className="h-5 w-px bg-white/25" />
+          <span className="whitespace-nowrap font-head text-[14px] font-semibold leading-none">
+            {APP_NAME}
+          </span>
+          <span className="hidden whitespace-nowrap text-xs text-white/70 lg:inline">{ENV_LABEL}</span>
+        </div>
+
+        <button
+          onClick={() => setPaletteOpen(true)}
+          className="ml-2 flex h-7 min-w-0 flex-1 max-w-sm items-center gap-2 rounded-md bg-white/10 px-2.5 text-xs text-white/70 ring-1 ring-white/20 transition-colors hover:bg-white/15 hover:text-white"
+        >
+          <Search size={13} className="shrink-0" />
+          <span className="flex-1 truncate text-left">Search promotions, customers, deductions…</span>
+          <kbd className="flex shrink-0 items-center gap-0.5 rounded bg-white/10 px-1 py-0.5 text-2xs text-white/70 ring-1 ring-white/20">
+            <Command size={9} />K
+          </kbd>
+        </button>
+
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="rounded p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+
+          {/* RSM sponsor mark — required on every bluestem app, white variant for Midnight. */}
+          <span className="flex items-center gap-1.5 border-l border-white/25 pl-3">
+            <span className="whitespace-nowrap text-2xs text-white/70">Powered by</span>
+            <img src={rsmLogo} alt="RSM" className="block h-[22px] w-auto" />
+          </span>
+
+          <div
+            className="grid h-7 w-7 place-items-center rounded-full bg-accent-ink text-2xs font-semibold text-white"
+            title={`${me.name} — ${me.title ?? me.role}`}
+            aria-label={`Signed in as ${me.name}`}
+          >
+            {me.initials}
+          </div>
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1">
+        <aside
           className={clsx(
-            'flex h-12 items-center border-b border-hairline',
-            collapsed ? 'justify-center px-2' : 'gap-2 px-3.5',
+            'flex shrink-0 flex-col border-r border-hairline bg-surface transition-[width] duration-150',
+            collapsed ? 'w-[52px]' : 'w-[212px]',
           )}
         >
-          <Logo />
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="truncate text-[13px] font-semibold leading-tight tracking-tight text-ink">
-                Tradewind
-              </p>
-              <p className="truncate text-2xs leading-tight text-ink-muted">Trade Promotion Mgmt</p>
-            </div>
-          )}
-        </div>
+          <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden p-2">
+            {NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                // The label is the accessible name in both states; when collapsed
+                // it also becomes the native tooltip so the rail stays navigable.
+                title={collapsed ? item.label : undefined}
+                aria-label={collapsed ? item.label : undefined}
+                className={({ isActive }) =>
+                  clsx(
+                    'relative flex items-center rounded-md py-1.5 text-[13px] font-medium transition-colors',
+                    collapsed ? 'justify-center px-0' : 'gap-2.5 border-l-[3px] pl-2 pr-2.5',
+                    isActive
+                      ? 'bg-accent-soft text-accent-ink' + (collapsed ? '' : ' border-accent')
+                      : 'text-ink-secondary hover:bg-sunken hover:text-ink' + (collapsed ? '' : ' border-transparent'),
+                  )
+                }
+              >
+                <item.icon size={15} strokeWidth={1.9} className="shrink-0" />
+                {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+                {item.badge === 'queue' && queueCount > 0 && (
+                  collapsed ? (
+                    // A count won't fit on a 52px rail, so the queue keeps a dot.
+                    // Colour alone carries no meaning here — the tooltip and the
+                    // expanded view both state the number.
+                    <span
+                      aria-hidden
+                      className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full ring-2 ring-surface"
+                      style={{ background: 'var(--status-warning)' }}
+                    />
+                  ) : (
+                    <Badge tone="warning">{queueCount}</Badge>
+                  )
+                )}
+              </NavLink>
+            ))}
+          </nav>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden p-2">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              // The label is the accessible name in both states; when collapsed
-              // it also becomes the native tooltip so the rail stays navigable.
-              title={collapsed ? item.label : undefined}
-              aria-label={collapsed ? item.label : undefined}
-              className={({ isActive }) =>
-                clsx(
-                  'relative flex items-center rounded-md py-1.5 text-[13px] font-medium transition-colors',
-                  collapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5',
-                  isActive
-                    ? 'bg-accent-soft text-accent-ink'
-                    : 'text-ink-secondary hover:bg-sunken hover:text-ink',
-                )
-              }
-            >
-              <item.icon size={15} strokeWidth={1.9} className="shrink-0" />
-              {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-              {item.badge === 'queue' && queueCount > 0 && (
-                collapsed ? (
-                  // A count won't fit on a 52px rail, so the queue keeps a dot.
-                  // Colour alone carries no meaning here — the tooltip and the
-                  // expanded view both state the number.
-                  <span
-                    aria-hidden
-                    className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full ring-2 ring-surface"
-                    style={{ background: 'var(--status-warning)' }}
-                  />
-                ) : (
-                  <Badge tone="warning">{queueCount}</Badge>
-                )
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className={clsx('border-t border-hairline', collapsed ? 'p-2' : 'p-2.5')}>
-          {collapsed ? (
-            <div
-              className="grid h-8 place-items-center rounded-md bg-sunken text-2xs font-semibold text-ink-secondary"
-              title={`${org.name} · ${org.fiscalCalendar} · ${org.baseCurrency}`}
-            >
-              {org.name.slice(0, 2).toUpperCase()}
-            </div>
-          ) : (
-            <div className="rounded-md bg-sunken px-2.5 py-2">
-              <p className="truncate text-2xs font-medium text-ink">{org.name}</p>
-              <p className="mt-0.5 text-2xs text-ink-muted">
-                {org.fiscalCalendar} · {org.baseCurrency}
-              </p>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-hairline bg-surface px-4">
-          <button
-            onClick={toggleSidebar}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!collapsed}
-            title={`${collapsed ? 'Expand' : 'Collapse'} sidebar  (Ctrl+\\)`}
-            className="shrink-0 rounded p-1.5 text-ink-muted transition-colors hover:bg-sunken hover:text-ink"
-          >
-            {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-          </button>
-
-          <button
-            onClick={() => setPaletteOpen(true)}
-            className="flex h-7 min-w-0 flex-1 max-w-sm items-center gap-2 rounded-md bg-sunken px-2.5 text-xs text-ink-muted ring-1 ring-hairline transition-colors hover:text-ink-secondary"
-          >
-            <Search size={13} className="shrink-0" />
-            <span className="flex-1 truncate text-left">Search promotions, customers, deductions…</span>
-            <kbd className="flex shrink-0 items-center gap-0.5 rounded bg-raised px-1 py-0.5 text-2xs text-ink-muted ring-1 ring-hairline">
-              <Command size={9} />K
-            </kbd>
-          </button>
-
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Badge tone="accent">Demo data</Badge>
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="rounded p-1.5 text-ink-muted transition-colors hover:bg-sunken hover:text-ink"
-            >
-              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-            <div
-              className="grid h-7 w-7 place-items-center rounded-full bg-accent text-2xs font-semibold text-white"
-              title="Priya Nadkarni — Key Account Manager"
-            >
-              PN
-            </div>
+          <div className={clsx('border-t border-hairline', collapsed ? 'p-2' : 'p-2.5')}>
+            {collapsed ? (
+              <div
+                className="grid h-8 place-items-center rounded-md bg-sunken text-2xs font-semibold text-ink-secondary"
+                title={`${org.name} · ${org.fiscalCalendar} · ${org.baseCurrency}`}
+              >
+                {org.name.slice(0, 2).toUpperCase()}
+              </div>
+            ) : (
+              <div className="rounded-md bg-sunken px-2.5 py-2">
+                <p className="truncate text-2xs font-medium text-ink">{org.name}</p>
+                <p className="mt-0.5 text-2xs text-ink-muted">
+                  {org.fiscalCalendar} · {org.baseCurrency}
+                </p>
+              </div>
+            )}
           </div>
-        </header>
+        </aside>
 
-        <main className="min-h-0 flex-1 overflow-y-auto bg-plane">{children}</main>
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-plane">{children}</main>
       </div>
 
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
@@ -199,18 +218,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Logo() {
+/**
+ * The bluestem mark from the master vector (bluestem_logo.svg): a stem in RSM
+ * Blue rising into a leaf in RSM Green. Fixed brand colours by design — the
+ * guide says never recolour it — so these are the only hex values in the app
+ * outside the token sheet.
+ */
+function BluestemMark() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden className="shrink-0">
-      <rect width="24" height="24" rx="6" fill="var(--accent)" />
-      <path
-        d="M5.5 15.5c2.6 0 2.6-3.4 5.2-3.4s2.6 3.4 5.2 3.4 2.6-3.4 2.6-3.4"
-        stroke="#fff" strokeWidth="1.7" strokeLinecap="round" fill="none"
-      />
-      <path
-        d="M5.5 10.2c2.6 0 2.6-2.6 5.2-2.6s2.6 2.6 5.2 2.6 2.6-2.6 2.6-2.6"
-        stroke="#fff" strokeWidth="1.7" strokeLinecap="round" fill="none" opacity="0.55"
-      />
+    <svg width="26" height="28" viewBox="36 14 214 234" aria-hidden className="shrink-0">
+      <path d="M62 232 Q75 150 150 130" stroke="#009CDE" strokeWidth="26" strokeLinecap="round" fill="none" />
+      <g transform="translate(155 108) rotate(-45)">
+        <path d="M-72 0 C-40 -50 40 -50 72 0 C40 50 -40 50 -72 0 Z" fill="#3F9C35" />
+        <path d="M-45 0 L45 0" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" />
+      </g>
     </svg>
   )
 }

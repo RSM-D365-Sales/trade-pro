@@ -234,7 +234,7 @@ export function buildFundTransactions(
         'Reclass from MDF per finance review',
         'Prior-year over-accrual released',
       ]),
-      actorId: rng.pick(['u_marcus', 'u_carol']),
+      actorId: rng.pick(['u_marcus', 'u_hannah']),
     })
   }
 

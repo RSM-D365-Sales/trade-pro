@@ -7,7 +7,7 @@
  * because that is when the retailer's scan data says the money was earned.
  */
 
-import { CHAIN_CUSTOMERS, ORG, USERS } from '../catalog'
+import { CHAIN_CUSTOMERS, ORG, REP_BY_CUSTOMER, USER_BY_ID } from '../catalog'
 import { TACTICS } from '../tactics'
 import type {
   Promotion,
@@ -21,13 +21,10 @@ import { addDays, diffWeeks } from '../../lib/fiscal'
 import type { Rng } from '../rng'
 import { CHAIN_SCALE, PRODUCT_BY_ID, type MarketCell } from './market'
 
-const KAM_BY_CHAIN: Record<string, string> = {
-  cust_WMT: 'u_tom', cust_KR: 'u_priya', cust_ACI: 'u_priya', cust_CST: 'u_tom',
-  cust_AD: 'u_sasha', cust_PUB: 'u_sasha', cust_HEB: 'u_priya', cust_TGT: 'u_tom',
-  cust_UNFI: 'u_sasha', cust_KEHE: 'u_sasha', cust_SFM: 'u_priya', cust_WFM: 'u_priya',
-}
+/** A promotion is owned by the rep who owns the account — the territory book in the catalog. */
+const KAM_BY_CHAIN: Record<string, string> = REP_BY_CUSTOMER
 
-/** Which tactics each channel actually runs. Costco does not run TPRs. */
+/** Which tactics each channel actually runs. A club warehouse does not run TPRs; natural stores live on demos and sampling. */
 const CHANNEL_TACTICS: Record<string, [TacticCode, number][]> = {
   mass: [['off_invoice', 3], ['bill_back', 3], ['tpr', 2], ['feature', 2], ['display', 2], ['rebate', 1], ['edlp', 2]],
   club: [['off_invoice', 4], ['bogo', 1], ['display', 3], ['mdf', 2], ['listing', 1], ['rebate', 2]],
@@ -99,7 +96,7 @@ export function buildPromotions(
     const primaryTactic = rng.weighted(tacticPool)
 
     const status = statusFor(rng, performStart, performEnd, opts.today)
-    const owner = KAM_BY_CHAIN[chain.id] ?? 'u_priya'
+    const owner = KAM_BY_CHAIN[chain.id] ?? 'u_nora'
 
     // Lines cluster on one brand — planners promote a brand, not a random SKU set.
     const brandCells = pickBrandCells(rng, cells)
@@ -107,7 +104,7 @@ export function buildPromotions(
     if (lineCount === 0) continue
 
     const chosen = rng.shuffle(brandCells).slice(0, lineCount)
-    const brand = PRODUCT_BY_ID.get(chosen[0].productId)?.brand ?? 'Summit Trail'
+    const brand = PRODUCT_BY_ID.get(chosen[0].productId)?.brand ?? 'Bluestem Fields'
     const monthLabel = MONTHS[new Date(`${performStart}T00:00:00Z`).getUTCMonth()]
     const year = performStart.slice(2, 4)
 
@@ -131,7 +128,7 @@ export function buildPromotions(
     if (status !== 'draft') promo.submittedAt = addDays(promo.createdAt, rng.int(1, 9))
     if (['approved', 'active', 'closed'].includes(status)) {
       promo.approvedAt = addDays(promo.submittedAt!, rng.int(1, 6))
-      promo.approvedBy = rng.pick(['u_marcus', 'u_carol', 'u_dana'])
+      promo.approvedBy = rng.pick(['u_marcus', 'u_hannah', 'u_priya'])
     }
 
     promotions.push(promo)
@@ -167,10 +164,10 @@ export function buildPromotions(
 }
 
 const NOTES = [
-  'Customer requested extension after the Q2 reset.',
-  'Tied to the retailer summer merchandising event.',
+  'Buyer confirmed front-page placement in the weekly circular.',
+  'Tied to the retailer’s Michigan-grown merchandising event.',
   'Replaces the cancelled display program.',
-  'Buyer confirmed ad placement in the weekly circular.',
+  'Crop timing dependent — confirm the harvest window with grower relations before ship start.',
   'Volume commitment agreed verbally — get it in writing before close.',
 ]
 
@@ -186,11 +183,12 @@ function pickBrandCells(rng: Rng, cells: MarketCell[]): MarketCell[] {
 function rateFor(rng: Rng, rateType: RateType, listPrice: number, totalUnits: number): number {
   switch (rateType) {
     case 'per_case':
-      return Math.round(listPrice * rng.float(0.12, 0.32) * 100) / 100
+      // $1.50–$4.50 on a $17–$42 case — the per-case rates the Bluestem deal sheets carry.
+      return Math.round(listPrice * rng.float(0.06, 0.2) * 100) / 100
     case 'pct_of_list':
-      return Math.round(rng.float(0.1, 0.28) * 1000) / 1000
+      return Math.round(rng.float(0.06, 0.18) * 1000) / 1000
     case 'per_unit':
-      return Math.round(rng.float(0.15, 0.85) * 100) / 100
+      return Math.round(rng.float(0.08, 0.3) * 100) / 100
     case 'lump_sum':
       return Math.round(Math.max(1500, totalUnits * rng.float(0.9, 3.2)) / 50) * 50
   }
@@ -215,10 +213,10 @@ function buildStatusEvents(p: Promotion): PromotionStatusEvent[] {
   push(null, 'draft', p.createdAt, p.ownerId, 'Created from last year’s plan')
   if (p.submittedAt) push('draft', 'submitted', p.submittedAt, p.ownerId)
   if (p.approvedAt) push('submitted', 'approved', p.approvedAt, p.approvedBy ?? 'u_marcus', 'Within fund balance and ROI threshold')
-  if (p.status === 'active' || p.status === 'closed') push('approved', 'active', p.performStart, 'u_dana')
+  if (p.status === 'active' || p.status === 'closed') push('approved', 'active', p.performStart, 'u_priya')
   if (p.status === 'closed') push('active', 'closed', addDays(p.performEnd, 7), 'u_marcus', 'Actuals posted; event settled')
   if (p.status === 'cancelled') push(p.approvedAt ? 'approved' : 'submitted', 'cancelled', addDays(p.createdAt, 21), p.ownerId, 'Buyer pulled the event')
   return evts
 }
 
-export const USER_BY_ID = new Map(USERS.map((u) => [u.id, u]))
+export { USER_BY_ID }

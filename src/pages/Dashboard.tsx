@@ -21,6 +21,7 @@ import { summariseRecovery, DISPOSITION_LABEL } from '../lib/calc/matching'
 import { utilizationBand } from '../lib/calc/funds'
 import { money, pct, units as fmtUnits } from '../lib/calc/money'
 import { addWeeks, formatShortDate } from '../lib/fiscal'
+import { CURRENT_USER_ID, USER_BY_ID } from '../data/catalog'
 import { useStore } from '../store'
 import {
   useEnrichedDeductions, useFundBalances, useLookups, usePromotionPerformance,
@@ -111,7 +112,7 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Good morning, Priya`}
+        title={`Good morning, ${USER_BY_ID.get(CURRENT_USER_ID)?.name.split(' ')[0] ?? 'there'}`}
         description={`${dataset.org.name} · trailing 52 weeks to ${today} · ${dataset.org.fiscalCalendar} fiscal calendar`}
         actions={
           <Button
@@ -182,7 +183,7 @@ export function DashboardPage() {
               />
               <Link
                 to="/deductions"
-                className="inline-flex items-center gap-1 text-2xs font-medium text-accent hover:underline"
+                className="inline-flex items-center gap-1 text-2xs font-medium text-accent-ink hover:underline"
               >
                 Open queue <ArrowRight size={11} />
               </Link>

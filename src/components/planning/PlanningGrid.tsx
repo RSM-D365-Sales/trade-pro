@@ -403,7 +403,7 @@ export function PlanningGrid({
           <AddLineControl products={availableProducts} onAdd={onAddLine} />
         </div>
         <div className="flex items-center gap-3">
-          {status && <span className="text-2xs text-accent">{status}</span>}
+          {status && <span className="text-2xs text-accent-ink">{status}</span>}
           <span className="hidden text-2xs text-ink-muted lg:block">
             Arrows move · type to edit · Ctrl+C/V · Ctrl+D fill down · Ctrl+Z undo
           </span>

@@ -13,7 +13,7 @@ const CTX: TreeContext = {
   customerParent: (id) => (id === 'bannerA' ? 'chainA' : null),
   channelOf: (id) => (id === 'chainB' ? 'club' : 'grocery'),
   productGroupName: (id) => ({ g1: 'Chocolate', g2: 'Bars' }[id] ?? id),
-  brandOfGroup: (id) => (id === 'g1' ? 'Summit Trail' : 'Golden Hour'),
+  brandOfGroup: (id) => (id === 'g1' ? 'Bluestem Orchard' : 'Bluestem Fields'),
 }
 
 function period(key: string, weeks: number, isPast = false): ForecastPeriod {
@@ -99,7 +99,7 @@ describe('hierarchy roll-up', () => {
     const totalB = byBrand.reduce((a, n) => a + n.total, 0)
     // Same underlying lines, so the grand total is invariant to the pivot.
     expect(totalA).toBeCloseTo(totalB, 6)
-    expect(byBrand.map((n) => n.label).sort()).toEqual(['Golden Hour', 'Summit Trail'])
+    expect(byBrand.map((n) => n.label).sort()).toEqual(['Bluestem Fields', 'Bluestem Orchard'])
   })
 
   it('groups by channel when asked', () => {

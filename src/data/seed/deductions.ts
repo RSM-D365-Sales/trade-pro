@@ -39,8 +39,8 @@ const ANALYSTS = USERS.filter((u) => u.role === 'finance' || u.role === 'kam').m
 
 const NON_TRADE_DESCRIPTIONS: Record<string, string[]> = {
   shortage: ['Concealed shortage claim', 'Receiving shortage — 4 cases', 'Short ship on PO'],
-  damages: ['Unsaleable product credit', 'Damage allowance — pallet', 'Spoilage credit'],
-  compliance_fine: ['OTIF penalty — late delivery', 'ASN accuracy fine', 'Vendor compliance penalty'],
+  damages: ['Quality rejection at DC — soft fruit', 'Temperature deviation — reefer out of range', 'Shrink credit — expired lots', 'Unsaleable product credit'],
+  compliance_fine: ['OTIF penalty — late delivery', 'ASN accuracy fine', 'PTI case-label compliance fine'],
   pricing: ['Price discrepancy vs. contract', 'Invoice priced above deal sheet'],
   freight: ['Freight adjustment — collect', 'Detention charge'],
   returns: ['Return to vendor authorisation'],
@@ -324,8 +324,8 @@ const DISPUTE_REASONS: Record<string, string[]> = {
   ],
   non_trade: [
     'Coded as a shortage but the POD confirms full delivery',
+    'Quality rejection without a DC inspection report or temperature log',
     'Compliance fine assessed outside the contractual window',
-    'Damage claim without supporting backup documentation',
   ],
   orphan: [
     'No promotion authorised for this customer in the deduction period',
@@ -355,12 +355,12 @@ function buildDispute(
   }
 
   const correspondence: Dispute['correspondence'] = [
-    { at: openedAt, author: 'Cascade Pantry', note: `Dispute opened. ${reason}` },
+    { at: openedAt, author: 'Bluestem Fresh Produce', note: `Dispute opened. ${reason}` },
   ]
   if (disputeStatus !== 'open') {
     correspondence.push({
       at: addDays(openedAt, rng.int(4, 18)),
-      author: 'Cascade Pantry',
+      author: 'Bluestem Fresh Produce',
       note: 'Backup submitted via the retailer vendor portal — deal sheet, POD and settlement history attached.',
     })
   }
@@ -389,7 +389,7 @@ function buildDispute(
     deductionId: d.id,
     reason,
     openedAt,
-    openedById: d.assignedToId ?? 'u_carol',
+    openedById: d.assignedToId ?? 'u_aisha',
     status: disputeStatus,
     claimedAmount: d.amount,
     recoveredAmount: Math.round(recovered * 100) / 100,

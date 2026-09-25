@@ -13,3 +13,6 @@ tsconfig.tsbuildinfo
 # Internal go-to-market material — this repo is PUBLIC.
 # Pricing, competitive positioning and partner-channel strategy stay on OneDrive.
 TPM_BUILD_PLAN.md
+
+# Local build backups (the live site is rebuilt from git on push).
+dist.backup*/

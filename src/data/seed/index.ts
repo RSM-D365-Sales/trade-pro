@@ -27,17 +27,21 @@ import { buildDeductions } from './deductions'
 import { buildForecast } from './forecast'
 import { buildCommercial } from './commercial'
 
-/** The demo's "today". Fixed so screenshots and verify.mjs stay reproducible. */
-export const DEMO_TODAY = '2026-07-30'
+/**
+ * The demo's "today" — the same as-of date as the Bluestem data pack, so this
+ * app and its siblings describe the same week. Fixed so screenshots and
+ * verify.mjs stay reproducible; move it and every date in the demo follows.
+ */
+export const DEMO_TODAY = '2026-09-17'
 
 export const SEED_CONFIG = {
-  seed: 20260730,
+  seed: 20260917,
   /**
    * Separate stream for the commercial layer. Sharing the main one would make
    * every promotion, deduction and sales fact in the demo change the moment a
    * service metric was added — a data set nobody could re-verify.
    */
-  commercialSeed: 20260731,
+  commercialSeed: 20260918,
   calendarStart: '2024-01-01',
   // Four whole fiscal years. The forecast needs a real forward horizon — a
   // calendar that stops a few periods past today gives a planner nothing to
@@ -209,7 +213,7 @@ function buildApprovals(
   spend: Map<string, number>,
 ): Approval[] {
   const out: Approval[] = []
-  const approverFor: Record<string, string> = { kam: 'u_priya', finance: 'u_marcus', admin: 'u_dana', demand_planner: 'u_ben', viewer: 'u_ben' }
+  const approverFor: Record<string, string> = { kam: 'u_nora', finance: 'u_marcus', admin: 'u_priya', demand_planner: 'u_ben', viewer: 'u_ben' }
 
   for (const p of promotions) {
     if (p.status === 'draft' || p.status === 'cancelled') continue
@@ -236,19 +240,22 @@ function buildApprovals(
 
 function buildGroups(): { customerGroups: CustomerGroup[]; productGroups: ProductGroup[] } {
   const customerGroups: CustomerGroup[] = [
-    { id: 'cg_national', orgId: ORG.id, name: 'National Accounts', customerIds: ['cust_WMT', 'cust_KR', 'cust_ACI', 'cust_TGT', 'cust_CST'] },
-    { id: 'cg_natural', orgId: ORG.id, name: 'Natural & Specialty', customerIds: ['cust_SFM', 'cust_WFM', 'cust_UNFI', 'cust_KEHE'] },
-    { id: 'cg_east', orgId: ORG.id, name: 'East Region', customerIds: ['cust_AD', 'cust_PUB'] },
-    { id: 'cg_club', orgId: ORG.id, name: 'Club Channel', customerIds: ['cust_CST'] },
+    { id: 'cg_key', orgId: ORG.id, name: 'Key Accounts', customerIds: ['cust_NWF', 'cust_GLG', 'cust_VPM', 'cust_SCS', 'cust_MFS'] },
+    { id: 'cg_michigan', orgId: ORG.id, name: 'Michigan Retail', customerIds: ['cust_GLG', 'cust_LNF', 'cust_GCC'] },
+    { id: 'cg_east', orgId: ORG.id, name: 'Retail East', customerIds: ['cust_NWF', 'cust_RBS', 'cust_MFM', 'cust_EFD'] },
+    { id: 'cg_natural', orgId: ORG.id, name: 'Natural & Co-op', customerIds: ['cust_LNF', 'cust_GCC'] },
+    { id: 'cg_foodservice', orgId: ORG.id, name: 'Foodservice Distributors', customerIds: ['cust_MFS', 'cust_EFD'] },
   ]
 
+  const byBrand = (brand: string) => PRODUCTS.filter((p) => p.brand === brand).map((p) => p.id)
+  const bySub = (...subs: string[]) => PRODUCTS.filter((p) => subs.includes(p.subbrand)).map((p) => p.id)
   const productGroups: ProductGroup[] = [
-    { id: 'pg_summit', orgId: ORG.id, name: 'Summit Trail — All', rule: { brand: 'Summit Trail' }, productIds: PRODUCTS.filter((p) => p.brand === 'Summit Trail').map((p) => p.id) },
-    { id: 'pg_golden', orgId: ORG.id, name: 'Golden Hour — All', rule: { brand: 'Golden Hour' }, productIds: PRODUCTS.filter((p) => p.brand === 'Golden Hour').map((p) => p.id) },
-    { id: 'pg_harvest', orgId: ORG.id, name: 'Harvest Table — All', rule: { brand: 'Harvest Table' }, productIds: PRODUCTS.filter((p) => p.brand === 'Harvest Table').map((p) => p.id) },
-    { id: 'pg_bars', orgId: ORG.id, name: 'Protein Bars', rule: { subbrand: 'Protein Bars' }, productIds: PRODUCTS.filter((p) => p.subbrand === 'Protein Bars').map((p) => p.id) },
-    { id: 'pg_sparkling', orgId: ORG.id, name: 'Sparkling Water', rule: { subbrand: 'Sparkling Water' }, productIds: PRODUCTS.filter((p) => p.subbrand === 'Sparkling Water').map((p) => p.id) },
-    { id: 'pg_soup', orgId: ORG.id, name: 'Soups & Broths', rule: { category: 'Meals' }, productIds: PRODUCTS.filter((p) => p.subbrand === 'Soups' || p.subbrand === 'Broths').map((p) => p.id) },
+    { id: 'pg_orchard', orgId: ORG.id, name: 'Bluestem Orchard — All', rule: { brand: 'Bluestem Orchard' }, productIds: byBrand('Bluestem Orchard') },
+    { id: 'pg_fields', orgId: ORG.id, name: 'Bluestem Fields — All', rule: { brand: 'Bluestem Fields' }, productIds: byBrand('Bluestem Fields') },
+    { id: 'pg_freshcuts', orgId: ORG.id, name: 'Bluestem Fresh Cuts — All', rule: { brand: 'Bluestem Fresh Cuts' }, productIds: byBrand('Bluestem Fresh Cuts') },
+    { id: 'pg_apples', orgId: ORG.id, name: 'Apples — packed & cut', rule: { subbrand: 'Apples' }, productIds: bySub('Apples', 'Cut Apples') },
+    { id: 'pg_salads', orgId: ORG.id, name: 'Salads & Blends', rule: { subbrand: 'Salads' }, productIds: bySub('Salads', 'Vegetable Blends') },
+    { id: 'pg_summerfruit', orgId: ORG.id, name: 'Summer Fruit', rule: { category: 'Packed Fresh' }, productIds: bySub('Berries', 'Cherries') },
   ]
 
   return { customerGroups, productGroups }

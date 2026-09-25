@@ -862,7 +862,7 @@ export function SalesAnalyticsPage() {
             </p>
             <Link
               to="/deductions"
-              className="inline-flex shrink-0 items-center gap-1 text-2xs font-medium text-accent hover:underline"
+              className="inline-flex shrink-0 items-center gap-1 text-2xs font-medium text-accent-ink hover:underline"
             >
               Work the deduction queue <ArrowRight size={11} />
             </Link>
@@ -876,7 +876,7 @@ export function SalesAnalyticsPage() {
             Net sales is gross less allowances taken at invoice less claimed trade money
             straight-lined across each event's on-shelf weeks. It reconciles to the gross-to-net
             waterfall on{' '}
-            <Link to="/analytics" className="text-accent hover:underline">Trade analytics</Link>{' '}
+            <Link to="/analytics" className="text-accent-ink hover:underline">Trade analytics</Link>{' '}
             with two differences we can name: that screen also carries unrecovered invalid
             deductions inside net sales (here they are reported separately, above), and it books
             each event whole rather than by elapsed week. Volume on deal counts only cases that
@@ -887,8 +887,7 @@ export function SalesAnalyticsPage() {
             volume moves. Clicking a product group focuses everything additive — sales, profit,
             cases, the leaderboard, the attention checks on volume and margin — while plan,
             deductions, receivables and service stay at account level and say so, because none of
-            them lands on a single product. Every figure on this page is synthetic sample data for
-            a fictional manufacturer — nothing here is a real commercial record.
+            them lands on a single product.
           </p>
         </div>
       </PageBody>

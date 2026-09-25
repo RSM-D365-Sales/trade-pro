@@ -1,8 +1,12 @@
-# Tradewind TPM — presales demo prototype
+# Bluestem Trade Promotion Management — presales demo prototype
 
-An ERP-agnostic **Trade Promotion Management & deduction-recovery** prototype for
-mid-market CPG manufacturers. Built as a self-contained React app with a rich
-seeded dataset — no backend, no accounts, no network calls.
+A **Trade Promotion Management & deduction-recovery** prototype, presented as
+the trade marketing workbench of **Bluestem Fresh Produce** — the fictional
+Michigan grower-packer-shipper and fresh-cut processor that fronts RSM's
+produce demos. Built as a self-contained React app with a rich seeded dataset —
+no backend, no accounts, no network calls.
+
+*Plan it. Fund it. Match it. Calendar-cool.*
 
 This is the demo build of a product specified in an internal build plan. It
 implements that plan's guided-demo arc end to end so it can go in front of a
@@ -16,31 +20,40 @@ npm run dev      # http://localhost:5173
 | | |
 |---|---|
 | `npm run dev` | Vite dev server |
-| `npm run build` | Production build → `dist/` (≈112 kB gzipped) |
-| `npm test` | 95 unit tests — calc, matching and forecast engines, seed integrity, economics |
-| `npm run verify` | Browser smoke test in system Edge + screenshots (28 local, 32 against a deploy) |
+| `npm run build` | Production build → `dist/` |
+| `npm test` | 137 unit tests — calc, matching and forecast engines, seed integrity, economics |
+| `npm run reconcile` | Prints the seeded tenant's headline numbers (gross, trade rate, deduction buckets, forecast queue) so they can be defended and the docs refreshed |
+| `npm run verify` | Browser smoke test in system Edge + screenshots |
 | `npm run typecheck` | `tsc --noEmit` |
 
 ---
 
-## What's in it
+## The tenant
 
-**Product name is a placeholder.** "Tradewind" appears in `index.html`,
-`AppShell.tsx` and `package.json` — three places, easy to rename in Phase 0.
+Everything on screen belongs to Bluestem, and Bluestem is a mock company:
+its customers, people and items come from the shared Bluestem demo-data pack
+(`Blustem-company-details/`), so this app shows the same Northwind Foods,
+Summit Club Stores and Nora Adeyemi as the sibling Bluestem apps, joined on the
+pack's own IDs. Brand tokens, the Midnight title ribbon, the bluestem mark and
+the "Powered by RSM" sponsor mark all follow `BRAND_GUIDE.md` v2.
 
-The demo tenant is **Cascade Pantry Co.**, a fictional ~$193M CPG manufacturer.
-Retailer names are real because trade-promotion people think in terms of Kroger
-and Albertsons — abstract names make a TPM demo read as a toy. Every screen
-carries a **Demo data** badge so nothing is mistaken for a real commercial record.
+| | |
+|---|---|
+| Legal name | Bluestem Fresh Produce, Inc. — Grand Rapids, MI |
+| Persona | Nora Adeyemi, Trade Marketing Manager (approvals: Priya Nair, VP Sales; Marcus Lindqvist, CFO; Hannah Whitfield, Controller) |
+| Accounts | The 12 pack customers that carry trade programs — grocery, mass, club, natural and foodservice distribution — each with the banners its remittances arrive from |
+| Items | The pack's 29 finished goods, sold under three labels: **Bluestem Orchard** (apples, berries, cherries), **Bluestem Fields** (vegetables, greens) and **Bluestem Fresh Cuts** (cut fruit, blends, salads, cups, trays). List price and standard cost are the pack's to the cent |
+| As of | 2026-09-17 — the pack's own "today", so every date in the demo lines up with the other apps |
+| ERP | D365 F&SC · BFP-UAT |
 
 | Screen | What it demonstrates |
 |---|---|
 | **Dashboard** | Money at risk first, then fund pressure, then plan performance. Every tile links into the screen that can act on it. |
 | **Deductions** | The wedge. 300 chargebacks scored live by the matching engine into auto-matched / needs review / likely invalid / no match, with a full evidence breakdown per candidate, disputes, aging and recovery economics. |
 | **Promotions** | Every event, ranked on **true** ROI (cannibalization and post-promo dip already netted out). |
-| **Planning grid** | Excel-grade editing: arrow keys, type-to-edit, Ctrl+C/V over a range as TSV, Ctrl+D fill-down, Ctrl+Z undo. Live P&L recalculates on every keystroke, plus a real-time fund check and SKU-level conflict detection. |
-| **Trade calendar** | Customer × week Gantt. Drag to move, drag the trailing edge to extend — both snap to retail weeks. Overlapping events sharing a SKU are outlined in red as you drag. |
-| **Forecast** | Driver-based and multi-level. Every cell is `stores × velocity × seasonality × weeks`, rolling up through a hierarchy you choose — customer → product group, brand → customer, channel → customer → group. Editable drivers, bulk update, and a recommendation queue that compares each assumption against recent actuals. |
+| **Planning grid** | Excel-grade editing: arrow keys, type-to-edit, Ctrl+C/V over a range as TSV, Ctrl+D fill-down, Ctrl+Z undo. Live P&L recalculates on every keystroke, plus a real-time fund check and item-level conflict detection. |
+| **Trade calendar** | Customer × week Gantt. Drag to move, drag the trailing edge to extend — both snap to retail weeks. Overlapping events sharing an item are outlined in red as you drag. |
+| **Forecast** | Driver-based and multi-level. Every cell is `stores × velocity × seasonality × weeks`, rolling up through a hierarchy you choose — customer → product group, label → customer, channel → customer → group. Editable drivers, bulk update, and a recommendation queue that compares each assumption against recent actuals. |
 | **Trade funds** | Balances derived from the transaction ledger on every read, never stored. Click any fund to see the postings behind its number. |
 | **Sales analytics** | The commercial leadership view: net sales against a fixed operating plan over eight fiscal periods, gross profit by product group, a territory leaderboard ranked on GP rather than revenue, service and receivables KPIs, and an accounts-needing-attention panel with one finding per account. |
 | **Trade analytics** | Gross-to-net waterfall, quality-of-lift breakdown, spend by tactic, effectiveness leaderboard showing reported ROI struck through next to the true figure. |
@@ -48,7 +61,7 @@ carries a **Demo data** badge so nothing is mistaken for a real commercial recor
 
 Plus: `Cmd/Ctrl-K` command palette over the whole dataset, a sidebar that
 collapses to an icon rail (`Ctrl/⌘ + \`, persisted — for presenting on a shared
-screen), dark mode, designed empty states, and a designed 404.
+screen), dark mode on Midnight, designed empty states, and a designed 404.
 
 ---
 
@@ -59,7 +72,8 @@ src/
 ├── data/
 │   ├── types.ts          canonical domain model, mirrors the plan's
 │   │                     core / md / trade / sales / settle schemas
-│   ├── catalog.ts        static master data (12 chains → 24 banners, 40 SKUs)
+│   ├── catalog.ts        static master data from the Bluestem pack
+│   │                     (12 chains → 18 banners, 29 SKUs, 12 people)
 │   ├── tactics.ts        tactic reference + fixed categorical colour slots
 │   ├── rng.ts            deterministic PRNG — never Math.random() in seed code
 │   └── seed/             market → funds → promotions → sales → deductions
@@ -77,12 +91,17 @@ src/
 ├── store/                zustand store + derived selectors
 ├── components/           ui primitives, charts, planning grid, app shell
 └── pages/                one file per route
+scripts/reconcile.ts      prints the seeded tenant's headline numbers
 ```
 
 **`src/lib/calc` is the piece that matters.** It is pure functions with no React
 and no data access, exactly as `packages/calc` is specified in the build plan —
 so it lifts into the real monorepo unchanged and is already covered by tests.
 No business math lives in a component.
+
+**`src/data/catalog.ts` is the one place the tenant lives.** Retargeting the
+demo at a different company is an edit to that file; every promotion, shipment,
+fund posting and chargeback is regenerated from it on load.
 
 ---
 
@@ -96,7 +115,7 @@ deduction lines drifts by fractions of a cent and a finance user notices the
 recon break.
 
 It also models the **honest** numbers the plan calls a differentiator —
-cannibalization (lift stolen from sibling SKUs) and pantry loading (the
+cannibalization (lift stolen from sibling packs) and pantry loading (the
 post-promotion trough) — as first-class outputs. Analytics ranks on
 `trueRoi`, not `reportedRoi`, and shows the gap.
 
@@ -128,6 +147,13 @@ Three decisions in it are load-bearing:
   averaged across three retailers is not a number anyone can act on, and showing
   it invites an edit that silently fans out across the roll-up.
 
+Seasonality in the seed is a **crop property**, keyed by product group rather
+than category: Michigan asparagus is a May–June business, blueberries and
+cherries peak in July, apples in the fall, veggie trays around the holidays,
+and partner growers in California, Arizona and Mexico keep every line trading
+through the winter. That is what makes the seasonality driver visibly do
+something on a produce book.
+
 The recommendation engine compares each driver against the last thirteen clean
 weeks and proposes a specific value. It never rewrites a driver on its own, it
 reports **one finding per line per driver** (a drifting velocity drifts in every
@@ -137,7 +163,7 @@ planner override rather than nagging about it.
 Two things it deliberately does **not** do:
 
 - It does not compare a seasonal recent window against an annual average. Both
-  sides are de-seasonalised first, or every summer it would insist beverages are
+  sides are de-seasonalised first, or every July it would insist berries are
   under-forecast purely because of the time of year.
 - It does not flag "a promotion runs here but the forecast shows no uplift".
   This is a *base* forecast — the history behind it is de-promoted on purpose
@@ -175,15 +201,16 @@ cannot silently drift apart.
 **The plan is fixed and backward-looking**: last year's actual for the same
 fiscal period, grown at the rate that account actually grew, damped, times an
 ambition factor. It does not move when a promotion is edited — which is exactly
-why editing one moves attainment. Company attainment lands in the high 90s with
-periods either side of 100%, and there is a test for that too; twelve
-consecutive misses reads as a broken plan rather than a book worth discussing.
+why editing one moves attainment. Company attainment lands within a few points
+of 100% with periods either side of it, and there is a test for that too;
+twelve consecutive misses reads as a broken plan rather than a book worth
+discussing.
 
 The **accounts-needing-attention** panel carries the same lesson the forecast
 queue learned the hard way: one finding per account, the most serious one, and
 every threshold measured **relative to this book rather than absolute**. Every
-account in a real CPG business carries deductions; flagging all of them re-sorts
-the customer list by size and tells a sales director nothing.
+account in a real produce business carries deductions; flagging all of them
+re-sorts the customer list by size and tells a sales director nothing.
 
 ### The matching engine — `src/lib/calc/matching.ts`
 
@@ -196,18 +223,19 @@ names the leaf it landed on.
 Three things in it are load-bearing and were arrived at by measuring, not guessing:
 
 - **Product scope carries real weight.** With a dozen live promotions per
-  retailer, some event's claimable spend lands within tolerance of almost any
+  account, some event's claimable spend lands within tolerance of almost any
   deduction amount. Customer + date + amount alone will confidently return the
-  wrong answer; brand agreement is what separates the real event from the
+  wrong answer; label agreement is what separates the real event from the
   lookalike.
 - **The promo-code reference is a proportional lift, not a flat bonus.** An
   additive bonus clamps at 1.0, which silently turns a degraded match into a
   perfect-looking one — the confidence stops meaning anything exactly when it
   matters most.
 - **Warnings distinguish hygiene from invalidity.** An unmapped reason code is
-  annoying; a shortage code against a promotion, an off-invoice-only event, or a
-  claim above what the event can owe are assertions that the money is not owed.
-  Only the latter drive the `likely_invalid` bucket — the recovery bucket.
+  annoying; a quality-rejection code against a promotion, an off-invoice-only
+  event, or a claim above what the event can owe are assertions that the money
+  is not owed. Only the latter drive the `likely_invalid` bucket — the recovery
+  bucket.
 
 The engine runs **live in the browser** on load, not baked into the seed. Move a
 tolerance in Settings and every score in the app changes.
@@ -217,37 +245,40 @@ tolerance in Settings and every score in the app changes.
 ## The seeded world
 
 Deterministic — same bytes on every load, so a presenter can refresh mid-demo
-and `verify.mjs` can assert against fixed values.
+and `verify.mjs` can assert against fixed values. `npm run reconcile` prints
+the current figures; the ones below are from the seed as committed.
 
 | | |
 |---|---|
-| Customers | 12 chains → 24 banners, with a real hierarchy the matcher walks |
-| Products | 40 SKUs across 3 brands and 3 categories |
-| History | 110 weeks of weekly shipment facts (34,650 rows) |
-| Promotions | 200 events, ~6.8 lines each, spanning history and two quarters forward |
-| Funds | 96 funds across 4 fiscal years, 1,793 ledger postings |
-| Deductions | 300 chargebacks, 69 disputes |
-| Forecast | 102 planning lines × 48 fiscal periods, ~37 open recommendations |
-| Sales plan | 27 traded fiscal periods × 12 chains, set from prior-year actuals |
-| Territories | 8 key account managers, every chain owned by exactly one |
-| Gross sales | ~$193M trailing 52 weeks |
-| Trade spend rate | ~12.9% of gross |
-| Volume on deal | ~23% |
-| Plan attainment | high 90s, with periods either side of 100% |
+| Customers | 12 chains → 18 banners, with a real hierarchy the matcher walks |
+| Products | 29 SKUs across 3 labels and 10 product groups |
+| History | 110 weeks of weekly shipment facts (28,820 rows) |
+| Promotions | 200 events, ~6 lines each, spanning history and two quarters forward |
+| Funds | 120 funds across 5 fiscal years, 1,797 ledger postings |
+| Deductions | 300 chargebacks, 68 disputes |
+| Forecast | 102 planning lines × 48 fiscal periods, ~21 open recommendations |
+| Sales plan | Every traded fiscal period × 12 chains, set from prior-year actuals |
+| Territories | 5 sales reps, every chain owned by exactly one |
+| Gross sales | ~$212M trailing 52 weeks — the figure in the company profile |
+| Gross margin | ~35% (packed fresh ~30%, fresh-cut ~40%) |
+| Trade spend rate | ~11.9% of gross |
+| Volume on deal | ~26% |
+| Plan attainment | within a few points of 100%, with periods either side |
 | Case fill rate | ~96%, against a 98% retailer target |
-| DSO | ~35 days, ~3% of receivables past 60 |
+| DSO | mid-30s days, ~3% of receivables past 60 |
 
 The numbers are calibrated, not arbitrary. `src/data/seed/economics.test.ts`
 guards them: a demo dataset can be internally consistent and still be nonsense to
 anyone who knows the industry — half a billion in revenue for a "mid-market"
-prospect, or a 3% trade rate when the real range is 12–20%. A CPG trade finance
-person reads those in the first thirty seconds.
+prospect, a 50% gross margin on fresh produce, or a 3% trade rate when a produce
+supplier's gross-to-net really runs 8–15%. A produce finance person reads those
+in the first thirty seconds.
 
-**Deductions total ~119% of claimable spend.** That 19% excess is the entire
+**Deductions total ~107% of claimable spend.** That excess is the entire
 commercial argument, and it is constructed deliberately: legitimate claims are
 bounded by each event's remaining claimable headroom, so duplicates, over-claims,
-miscoded non-trade charges and orphans are genuinely *excess* rather than just
-more of the same.
+miscoded quality and shortage charges and orphans are genuinely *excess* rather
+than just more of the same.
 
 Off-invoice money is never claimable — it already came off the invoice at order
 entry, so a retailer claiming it again is by definition a duplicate. The engine
@@ -258,19 +289,25 @@ knows this and says so.
 ## Design system
 
 Tokens live in `src/index.css` and resolve through Tailwind — no ad-hoc hex
-values anywhere in the app. Light and dark are both **selected**: the dark
-series colours are the same eight hues re-stepped for the dark surface, not an
-automatic flip.
+values anywhere in the app except the bluestem mark itself, which the brand
+guide says never to recolour. The palette is Bluestem's (RSM Blue, Midnight,
+RSM Green, Harvest Amber, Signal Red on Fog and white); headings are Poppins
+SemiBold bundled locally via `@fontsource/poppins`, body and tables are Segoe UI
+to match D365 F&SC. Light and dark are both **selected**: dark mode is the
+guide's Midnight ground with `#0B2454` surfaces, not an automatic flip.
 
-Charts follow one categorical palette assigned in **fixed slot order, never
-cycled** — a filter that changes the series count never repaints the survivors.
-The palette passes every colourblind-separation and contrast gate in both modes
-(validated with the dataviz skill's `validate_palette.js`; light mode carries a
-sub-3:1 contrast warning on three slots, so **every chart ships a table view**
-and direct labels as the documented relief).
+RSM Blue is only 2.9:1 on white, so it is used for fills, the active-nav bar,
+focus and chart series 1; anything that has to be read — link text, solid
+buttons — uses the deeper accent-ink step, as the other Bluestem apps do.
+
+Charts follow one categorical palette in the brand's chart order (Blue → Green →
+lifted Midnight → Amber → Mid Grey, then tints), assigned in **fixed slot order,
+never cycled** — a filter that changes the series count never repaints the
+survivors. Slots 5–8 sit under 3:1 on white, so **every chart ships a table
+view** and direct labels as the documented relief.
 
 Charts are hand-rolled SVG — no charting dependency. Total runtime deps: React,
-React Router, Zustand, lucide-react, clsx, date-fns.
+React Router, Zustand, lucide-react, clsx, date-fns, and the Poppins face.
 
 ---
 
@@ -286,43 +323,42 @@ tolerance re-scores the whole book — and writes screenshots to
 `verify-screenshots/`. Console errors fail the run.
 
 ```
-51/51 checks passed            # local dev server
-56/56 checks passed            # against https://www.rsmd365.com/trade-pro/
+59/59 checks passed            # local dev server
+65/65 checks passed            # against https://tradewind.rsmd365.com/
 ```
 
 Point it at any origin:
 
 ```bash
-BASE_URL=https://www.rsmd365.com/trade-pro/ node verify.mjs
+BASE_URL=https://tradewind.rsmd365.com/ node verify.mjs
 ```
 
 Against a deployed origin it adds a check per static route that each returns a
-genuine **HTTP 200** rather than a 404 body that merely happens to render —
-GitHub Pages has no rewrite rules, so the workflow pre-renders each route as a
-real directory. **That pre-render list in `deploy.yml` is manual**: adding a
-route to the router without adding it there silently drops its deep link to the
-fallback.
+genuine **HTTP 200** rather than a 404 body that merely happens to render — the
+workflow pre-renders each route as a real directory. **That pre-render list in
+`deploy.yml` is manual**: adding a route to the router without adding it there
+silently drops its deep link to the fallback.
 
 ---
 
-## Deploying to GitHub Pages
+## Deploying
 
-Deploys automatically. `.github/workflows/deploy.yml` runs on every push to
-`main`: typecheck → tests → build → Pages. A failing test blocks the deploy,
-because a broken demo is worse than a stale one.
+Pushes to `main` build on Cloudflare Pages (`npm run build`, Node 22) and go live
+at <https://tradewind.rsmd365.com/> — the hostname predates the Bluestem
+rebrand. The GitHub Actions workflow in `.github/workflows/deploy.yml` still
+runs typecheck → tests → build on every push as a CI signal. Run `npm test`
+before pushing; this URL goes in front of prospects.
 
-**Live:** <https://www.rsmd365.com/trade-pro/>
+To reproduce a subpath build locally (PowerShell):
 
-To reproduce the deploy build locally:
-
-```bash
-BASE_PATH=/trade-pro/ npm run build
-cp dist/index.html dist/404.html      # SPA fallback — Pages has no rewrite rules
-npx vite preview                      # http://localhost:4173/trade-pro/
+```powershell
+$env:BASE_PATH = '/trade-pro/'; npm run build
+Copy-Item dist/index.html dist/404.html      # SPA fallback for hosts without rewrites
+npx vite preview                             # http://localhost:4173/trade-pro/
 ```
 
-`vite.config.ts` reads `BASE_PATH`, and the router uses
-`basename={import.meta.env.BASE_URL}`, so the same source serves from any subpath.
+`vite.config.ts` reads `BASE_PATH`, and the router strips the trailing slash
+from `import.meta.env.BASE_URL`, so the same source serves from any subpath.
 
 > `TPM_BUILD_PLAN.md` is gitignored. This repo is public and the plan contains
 > pricing, competitive positioning and partner-channel strategy.

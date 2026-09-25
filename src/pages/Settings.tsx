@@ -280,7 +280,7 @@ function Slider({
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <label className="text-[13px] font-medium text-ink">{label}</label>
-        <span className="text-[13px] tnum text-accent">{format(value)}</span>
+        <span className="text-[13px] tnum text-accent-ink">{format(value)}</span>
       </div>
       <input
         type="range"

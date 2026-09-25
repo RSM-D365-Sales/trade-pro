@@ -93,7 +93,7 @@ describe('straight-lining claimed spend', () => {
 
 describe('joining shipments to allocated spend', () => {
   const product: Product = {
-    id: 'p1', orgId: 'o', sku: 'S1', name: 'Thing', category: 'Snacks', brand: 'B',
+    id: 'p1', orgId: 'o', sku: 'S1', name: 'Thing', category: 'Packed Fresh', brand: 'B',
     subbrand: 'SB', casePack: 12, baseUom: 'CS', listPrice: 40, cogs: 22,
     netWeightLb: 6, status: 'active',
   }

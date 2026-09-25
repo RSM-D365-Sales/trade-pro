@@ -2,9 +2,9 @@
  * Market structure: who carries what, how fast it moves, and when.
  *
  * Everything downstream (sales, promotions, funds, deductions) is derived from
- * these three things, which is why a Costco promotion is naturally big and
- * lumpy while a Sprouts one is small and frequent — the shape falls out of the
- * data rather than being hand-written per screen.
+ * these three things, which is why a Summit Club promotion is naturally big and
+ * lumpy while a Green Cart one is small and frequent — the shape falls out of
+ * the data rather than being hand-written per screen.
  */
 
 import { CHAIN_CUSTOMERS, PRODUCTS } from '../catalog'
@@ -12,20 +12,20 @@ import type { Product } from '../types'
 import { parseISO } from '../../lib/fiscal'
 import type { Rng } from '../rng'
 
-/** Relative size of each retailer's business with us. Sums to ~1. */
+/** Relative size of each account's business with us. Sums to ~1. */
 export const CHAIN_SCALE: Record<string, number> = {
-  cust_WMT: 0.185,
-  cust_KR: 0.165,
-  cust_ACI: 0.11,
-  cust_CST: 0.105,
-  cust_AD: 0.085,
-  cust_PUB: 0.075,
-  cust_HEB: 0.06,
-  cust_TGT: 0.06,
-  cust_UNFI: 0.055,
-  cust_KEHE: 0.045,
-  cust_SFM: 0.032,
-  cust_WFM: 0.023,
+  cust_NWF: 0.17,
+  cust_GLG: 0.14,
+  cust_VPM: 0.13,
+  cust_SCS: 0.11,
+  cust_MFS: 0.09,
+  cust_RBS: 0.075,
+  cust_PFM: 0.06,
+  cust_MFM: 0.055,
+  cust_EFD: 0.05,
+  cust_CCG: 0.045,
+  cust_LNF: 0.04,
+  cust_GCC: 0.025,
 }
 
 /**
@@ -34,10 +34,10 @@ export const CHAIN_SCALE: Record<string, number> = {
  * of why the same promotion performs differently by retailer.
  */
 const ASSORTMENT_DEPTH: Record<string, number> = {
-  club: 0.22,
-  mass: 0.55,
-  grocery: 0.78,
-  natural: 0.68,
+  club: 0.3,
+  mass: 0.6,
+  grocery: 0.82,
+  natural: 0.7,
   distributor: 0.92,
   convenience: 0.3,
 }
@@ -51,6 +51,13 @@ export interface MarketCell {
   promoResponsiveness: number
 }
 
+/**
+ * Calibrated so the tenant lands near the $212M the Bluestem company profile
+ * states — squarely in the mid-market band, and the same top line the sibling
+ * Bluestem apps quote.
+ */
+const VELOCITY_SCALE = 4400
+
 export function buildAssortment(rng: Rng): MarketCell[] {
   const cells: MarketCell[] = []
 
@@ -62,18 +69,19 @@ export function buildAssortment(rng: Rng): MarketCell[] {
     const caseMultiplier = chain.channel === 'club' ? 6.5 : chain.channel === 'mass' ? 2.2 : 1
 
     for (const product of PRODUCTS) {
-      // Club skews to large formats; natural skews to premium subbrands.
+      // Club skews to large formats and bulk cartons; natural skews to
+      // fresh-cut and salads; mass avoids the premium fresh-cut price points.
       let carryChance = depth
-      if (chain.channel === 'club' && product.casePack > 8) carryChance *= 0.35
-      if (chain.channel === 'natural' && product.brand === 'Golden Hour') carryChance *= 1.25
-      if (chain.channel === 'mass' && product.listPrice > 48) carryChance *= 0.6
+      if (chain.channel === 'club' && product.casePack > 8 && product.casePack < 80) carryChance *= 0.45
+      if (chain.channel === 'natural' && product.brand === 'Bluestem Fresh Cuts') carryChance *= 1.25
+      if (chain.channel === 'mass' && product.listPrice > 32) carryChance *= 0.6
       if (!rng.chance(Math.min(0.97, carryChance))) continue
 
-      const brandStrength = product.brand === 'Summit Trail' ? 1.25 : product.brand === 'Golden Hour' ? 1.05 : 0.85
-      // Calibrated so the tenant lands around $180M gross a year — squarely in
-      // the $10M–$500M mid-market band the product targets, rather than the
-      // half-billion an unscaled velocity produced.
-      const base = rng.normal(1, 0.32) * scale * 2000 * brandStrength * caseMultiplier
+      const brandStrength =
+        product.brand === 'Bluestem Orchard' ? 1.15
+          : product.brand === 'Bluestem Fields' ? 1.0
+            : 0.85
+      const base = rng.normal(1, 0.32) * scale * VELOCITY_SCALE * brandStrength * caseMultiplier
 
       cells.push({
         customerId: chain.id,
@@ -88,21 +96,31 @@ export function buildAssortment(rng: Rng): MarketCell[] {
 }
 
 /**
- * Category seasonality by calendar month (index 0 = January), normalised so a
- * year averages 1.0. Soup sells in February; sparkling water sells in July.
- * Getting this right is what makes the baseline engine's seasonality index
- * visibly do something in the demo.
+ * Seasonality by calendar month (index 0 = January), normalised so a year
+ * averages 1.0, keyed by sub-brand because produce seasonality is a crop
+ * property: Michigan asparagus is a May–June business, blueberries and cherries
+ * peak in July, apples in the fall, and fresh-cut trays spike around the
+ * holidays. Winter volume from partner growers in California, Arizona and
+ * Mexico keeps every line trading all year. Getting this right is what makes
+ * the baseline engine's seasonality index visibly do something in the demo.
  */
 const SEASONALITY: Record<string, number[]> = {
-  //         Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec
-  Meals: [1.34, 1.36, 1.2, 1.02, 0.86, 0.72, 0.68, 0.76, 0.96, 1.12, 1.24, 1.28],
-  Beverages: [0.78, 0.8, 0.9, 1.02, 1.18, 1.32, 1.4, 1.34, 1.1, 0.94, 0.86, 0.8],
-  Snacks: [0.92, 0.9, 0.96, 1.0, 1.04, 1.06, 1.02, 1.18, 1.16, 1.04, 0.98, 1.1],
+  //                 Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec
+  'Apples':          [1.05, 0.95, 0.9, 0.85, 0.8, 0.75, 0.75, 0.9, 1.25, 1.35, 1.3, 1.15],
+  'Berries':         [0.7, 0.7, 0.75, 0.85, 1.0, 1.3, 1.6, 1.5, 1.15, 0.9, 0.8, 0.75],
+  'Cherries':        [0.6, 0.6, 0.65, 0.75, 0.95, 1.55, 2.05, 1.65, 1.05, 0.85, 0.7, 0.6],
+  'Vegetables':      [0.8, 0.8, 0.85, 0.95, 1.1, 1.15, 1.2, 1.25, 1.2, 1.05, 0.85, 0.8],
+  'Leafy Greens':    [0.9, 0.9, 0.95, 1.0, 1.1, 1.15, 1.15, 1.1, 1.0, 0.95, 0.9, 0.9],
+  'Cut Apples':      [1.0, 1.0, 0.95, 0.9, 0.9, 0.85, 0.85, 1.15, 1.25, 1.15, 1.05, 0.95],
+  'Vegetable Blends': [1.15, 1.1, 1.05, 0.95, 0.9, 0.85, 0.85, 0.9, 1.0, 1.1, 1.1, 1.05],
+  'Salads':          [0.85, 0.9, 1.0, 1.1, 1.15, 1.15, 1.15, 1.1, 1.0, 0.9, 0.85, 0.85],
+  'Fruit Cups':      [0.95, 0.95, 0.95, 0.95, 0.9, 0.85, 0.85, 1.15, 1.25, 1.15, 1.05, 1.0],
+  'Trays':           [1.2, 1.25, 0.95, 0.9, 0.95, 1.0, 1.0, 0.9, 0.85, 0.9, 1.0, 1.1],
 }
 
-export function seasonalFactor(category: string, weekStart: string): number {
+export function seasonalFactor(subbrand: string, weekStart: string): number {
   const month = parseISO(weekStart).getUTCMonth()
-  return SEASONALITY[category]?.[month] ?? 1
+  return SEASONALITY[subbrand]?.[month] ?? 1
 }
 
 /**
@@ -110,17 +128,18 @@ export function seasonalFactor(category: string, weekStart: string): number {
  * off EVERY case at order entry, before any promotion.
  *
  * Without this the model understates trade spend badly: event-driven money
- * alone is only ~4% of gross, whereas real CPG trade rates run 12–20%. Most of
- * that gap is exactly this — base allowances, EDLP support and distributor
- * margin that never appear on a promotion calendar but absolutely appear in
- * gross-to-net. Club and distributor carry the most; natural the least.
+ * alone is only a few points of gross, whereas a produce supplier's real
+ * gross-to-net runs 8–15%. Most of that gap is exactly this — base allowances,
+ * EDLP support and distributor margin that never appear on a promotion
+ * calendar but absolutely appear in gross-to-net. Club and distributor carry
+ * the most; natural the least.
  */
 const EVERYDAY_ALLOWANCE: Record<string, number> = {
-  mass: 0.09,
-  club: 0.11,
-  grocery: 0.065,
+  mass: 0.085,
+  club: 0.105,
+  grocery: 0.06,
   natural: 0.035,
-  distributor: 0.1,
+  distributor: 0.095,
   convenience: 0.05,
 }
 
@@ -129,14 +148,14 @@ export function everydayAllowanceRate(channel: string): number {
 }
 
 /**
- * Year-over-year trend. Summit Trail is growing, Harvest Table is flat to
- * declining — which gives the analytics screens something true to say rather
- * than a uniformly rosy picture.
+ * Year-over-year trend. Fresh Cuts is growing, Orchard is steady, Fields is
+ * flat to declining — which gives the analytics screens something true to say
+ * rather than a uniformly rosy picture.
  */
 const BRAND_TREND: Record<string, number> = {
-  'Summit Trail': 0.0022,
-  'Golden Hour': 0.0035,
-  'Harvest Table': -0.0008,
+  'Bluestem Orchard': 0.0012,
+  'Bluestem Fields': -0.0008,
+  'Bluestem Fresh Cuts': 0.0035,
 }
 
 export function trendFactor(brand: string, weekIndex: number): number {

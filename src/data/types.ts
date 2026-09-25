@@ -34,6 +34,8 @@ export interface User {
   name: string
   email: string
   role: Role
+  /** Job title from the employee master — shown on the avatar and in approvals. */
+  title?: string
   initials: string
 }
 

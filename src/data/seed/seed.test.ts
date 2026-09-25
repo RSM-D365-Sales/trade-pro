@@ -18,7 +18,7 @@ describe('seeded dataset', () => {
 
   it('hits the scale the build plan asks for', () => {
     expect(new Set(ds.products.map((p) => p.brand)).size).toBe(3)
-    expect(ds.products.length).toBe(40)
+    expect(ds.products.length).toBe(29)
     expect(ds.customers.filter((c) => c.level === 'chain').length).toBe(12)
     expect(ds.promotions.length).toBeGreaterThanOrEqual(190)
     expect(ds.deductions.length).toBeGreaterThanOrEqual(280)

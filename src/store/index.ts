@@ -169,7 +169,7 @@ function withForecastLines(
 /** Read once at store creation; a demo should open the way it was left. */
 function readCollapsed(): boolean {
   try {
-    return localStorage.getItem('tw.sidebar') === 'collapsed'
+    return localStorage.getItem('bstpm.sidebar') === 'collapsed'
   } catch {
     return false
   }
@@ -187,7 +187,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   setSidebarCollapsed: (sidebarCollapsed) => {
     try {
-      localStorage.setItem('tw.sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
+      localStorage.setItem('bstpm.sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
     } catch {
       /* private browsing — the toggle still works, it just won't be remembered */
     }
@@ -200,7 +200,7 @@ export const useStore = create<AppState>((set, get) => ({
     document.documentElement.setAttribute('data-theme', theme)
     document.documentElement.classList.toggle('dark', theme === 'dark')
     try {
-      localStorage.setItem('tw.theme', theme)
+      localStorage.setItem('bstpm.theme', theme)
     } catch {
       /* private browsing — the demo still works, it just won't remember */
     }
@@ -301,11 +301,11 @@ export const useStore = create<AppState>((set, get) => ({
       deductionId,
       reason,
       openedAt: s.today,
-      openedById: 'u_priya',
+      openedById: 'u_nora',
       status: 'open',
       claimedAmount: d.amount,
       recoveredAmount: 0,
-      correspondence: [{ at: s.today, author: 'Cascade Pantry', note: `Dispute opened. ${reason}` }],
+      correspondence: [{ at: s.today, author: 'Bluestem Fresh Produce', note: `Dispute opened. ${reason}` }],
     }
 
     set({
@@ -423,7 +423,7 @@ export const useStore = create<AppState>((set, get) => ({
         from: current.status,
         to: status,
         at: `${s.today}T12:00:00Z`,
-        actorId: 'u_priya',
+        actorId: 'u_nora',
         note,
       },
     ]
@@ -437,7 +437,7 @@ export const useStore = create<AppState>((set, get) => ({
         field: 'status',
         oldValue: current.status,
         newValue: status,
-        actorId: 'u_priya',
+        actorId: 'u_nora',
         at: `${s.today}T12:00:00Z`,
         reason: note,
       },

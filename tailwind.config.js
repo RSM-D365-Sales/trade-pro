@@ -11,6 +11,7 @@ export default {
         surface: 'var(--surface-1)',
         raised: 'var(--surface-2)',
         sunken: 'var(--surface-0)',
+        midnight: 'var(--midnight)',
         ink: {
           DEFAULT: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
@@ -37,15 +38,18 @@ export default {
         s8: 'var(--series-8)',
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        // Segoe UI for body and tables (matches D365 F&SC); Poppins for headings
+        // and the wordmark, bundled locally via @fontsource — no font CDN.
+        sans: ['Segoe UI', 'system-ui', '-apple-system', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        head: ['Poppins', 'Segoe UI', 'system-ui', '-apple-system', 'Arial', 'sans-serif'],
       },
       fontSize: {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
       },
       borderRadius: { xs: '3px' },
       boxShadow: {
-        card: '0 1px 2px rgba(11,11,11,0.04), 0 1px 1px rgba(11,11,11,0.03)',
-        pop: '0 8px 28px -6px rgba(11,11,11,0.18), 0 2px 6px rgba(11,11,11,0.08)',
+        card: '0 1px 2px rgba(0,21,61,0.05), 0 1px 1px rgba(0,21,61,0.04)',
+        pop: '0 8px 28px -6px rgba(0,21,61,0.22), 0 2px 6px rgba(0,21,61,0.1)',
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },

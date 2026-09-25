@@ -60,7 +60,7 @@ export function ForecastPage() {
   /** The trend section under the grid. Persisted — a presenter sets it once. */
   const [showTrend, setShowTrend] = useState(() => {
     try {
-      return localStorage.getItem('tw.forecastTrend') !== 'collapsed'
+      return localStorage.getItem('bstpm.forecastTrend') !== 'collapsed'
     } catch {
       return true
     }
@@ -68,7 +68,7 @@ export function ForecastPage() {
   const toggleTrend = () =>
     setShowTrend((v) => {
       try {
-        localStorage.setItem('tw.forecastTrend', v ? 'collapsed' : 'expanded')
+        localStorage.setItem('bstpm.forecastTrend', v ? 'collapsed' : 'expanded')
       } catch {
         /* private browsing — the toggle still works, it just won't be remembered */
       }

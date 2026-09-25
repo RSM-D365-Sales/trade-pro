@@ -12,7 +12,7 @@ import { buildFiscalCalendar, ageBucket, rangesOverlap, weekStartOf } from '../f
 import type { Customer, Deduction, Fund, Product, Promotion, PromotionLine, ReasonCode } from '../../data/types'
 
 const PRODUCT: Product = {
-  id: 'p1', orgId: 'o', sku: 'X1', name: 'Test', category: 'Snacks', brand: 'B', subbrand: 'S',
+  id: 'p1', orgId: 'o', sku: 'X1', name: 'Test', category: 'Packed Fresh', brand: 'B', subbrand: 'S',
   casePack: 12, baseUom: 'CS', listPrice: 40, cogs: 22, netWeightLb: 6, status: 'active',
 }
 

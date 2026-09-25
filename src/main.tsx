@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 
 import App from './App'
+// Poppins SemiBold for headings and the wordmark (brand guide), bundled locally — no font CDN.
+import '@fontsource/poppins/latin-600.css'
 import './index.css'
 
 /**

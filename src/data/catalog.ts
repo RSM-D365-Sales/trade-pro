@@ -1,118 +1,159 @@
 /**
  * Static master data for the demo tenant.
  *
- * The manufacturer ("Cascade Pantry Co.") is fictional — it is the prospect
- * stand-in. The retailers are real names because trade-promotion people think
- * in terms of Kroger and Albertsons; abstract names ("Retailer A") make a TPM
- * demo read as a toy. Nothing here is a real commercial record — it is
- * generated demo data and the app labels it as such.
+ * The tenant is **Bluestem Fresh Produce, Inc.** — the fictional Michigan
+ * grower-packer-shipper and fresh-cut processor that fronts every RSM produce
+ * demo. Customers, people and items come from the shared Bluestem demo-data
+ * pack (`customers.csv`, `employees.csv`, `items.csv`); the IDs in
+ * `externalIds.d365` are the pack's own keys, so this app joins to the same
+ * records the sibling Bluestem apps show. Every customer is fictional and every
+ * figure downstream of this file is generated.
  */
 
 import type { Customer, ID, Org, Product, ReasonCode, User } from './types'
 
 export const ORG: Org = {
-  id: 'org_cascade',
-  name: 'Cascade Pantry Co.',
+  id: 'org_bluestem',
+  name: 'Bluestem Fresh Produce',
   baseCurrency: 'USD',
+  // The company plans on a calendar fiscal year, but trade and demand planning
+  // run on 4-4-5 retail periods inside it — which is exactly the "a period is
+  // not a month" point the forecast screen makes.
   fiscalCalendar: '4-4-5',
   fiscalYearStart: '2024-01-01',
   accrualGlAccount: '2140 — Trade Promotion Accrual',
 }
 
+/** People from the pack's `employees.csv`, one persona per role the app needs. */
 export const USERS: User[] = [
-  { id: 'u_dana', orgId: ORG.id, name: 'Dana Whitfield', email: 'dana.whitfield@cascadepantry.example', role: 'admin', initials: 'DW' },
-  { id: 'u_marcus', orgId: ORG.id, name: 'Marcus Reyes', email: 'marcus.reyes@cascadepantry.example', role: 'finance', initials: 'MR' },
-  { id: 'u_priya', orgId: ORG.id, name: 'Priya Nadkarni', email: 'priya.nadkarni@cascadepantry.example', role: 'kam', initials: 'PN' },
-  { id: 'u_tom', orgId: ORG.id, name: 'Tom Beaulieu', email: 'tom.beaulieu@cascadepantry.example', role: 'kam', initials: 'TB' },
-  { id: 'u_sasha', orgId: ORG.id, name: 'Sasha Lindqvist', email: 'sasha.lindqvist@cascadepantry.example', role: 'kam', initials: 'SL' },
-  { id: 'u_neil', orgId: ORG.id, name: 'Neil Abrantes', email: 'neil.abrantes@cascadepantry.example', role: 'kam', initials: 'NA' },
-  { id: 'u_gemma', orgId: ORG.id, name: 'Gemma Oyelaran', email: 'gemma.oyelaran@cascadepantry.example', role: 'kam', initials: 'GO' },
-  { id: 'u_luis', orgId: ORG.id, name: 'Luis Ferreira', email: 'luis.ferreira@cascadepantry.example', role: 'kam', initials: 'LF' },
-  { id: 'u_ada', orgId: ORG.id, name: 'Ada Kowalczyk', email: 'ada.kowalczyk@cascadepantry.example', role: 'kam', initials: 'AK' },
-  { id: 'u_ravi', orgId: ORG.id, name: 'Ravi Menon', email: 'ravi.menon@cascadepantry.example', role: 'kam', initials: 'RM' },
-  { id: 'u_ben', orgId: ORG.id, name: 'Ben Okonkwo', email: 'ben.okonkwo@cascadepantry.example', role: 'demand_planner', initials: 'BO' },
-  { id: 'u_carol', orgId: ORG.id, name: 'Carol Zhu', email: 'carol.zhu@cascadepantry.example', role: 'finance', initials: 'CZ' },
+  { id: 'u_nora', orgId: ORG.id, name: 'Nora Adeyemi', title: 'Trade Marketing Manager', email: 'nora.adeyemi@bluestemfresh.com', role: 'kam', initials: 'NA' },
+  { id: 'u_priya', orgId: ORG.id, name: 'Priya Nair', title: 'VP Sales', email: 'priya.nair@bluestemfresh.com', role: 'admin', initials: 'PN' },
+  { id: 'u_dana', orgId: ORG.id, name: 'Dana Okafor-Reyes', title: 'CEO', email: 'dana.okafor@bluestemfresh.com', role: 'admin', initials: 'DO' },
+  { id: 'u_marcus', orgId: ORG.id, name: 'Marcus Lindqvist', title: 'CFO', email: 'marcus.lindqvist@bluestemfresh.com', role: 'finance', initials: 'ML' },
+  { id: 'u_hannah', orgId: ORG.id, name: 'Hannah Whitfield', title: 'Controller', email: 'hannah.whitfield@bluestemfresh.com', role: 'finance', initials: 'HW' },
+  { id: 'u_aisha', orgId: ORG.id, name: 'Aisha Rahman', title: 'AR Specialist', email: 'aisha.rahman@bluestemfresh.com', role: 'finance', initials: 'AR' },
+  { id: 'u_tom', orgId: ORG.id, name: 'Tom Kowalski', title: 'Sales Rep — Retail East', email: 'tom.kowalski@bluestemfresh.com', role: 'kam', initials: 'TK' },
+  { id: 'u_elena', orgId: ORG.id, name: 'Elena Petrov', title: 'Sales Rep — Retail Central', email: 'elena.petrov@bluestemfresh.com', role: 'kam', initials: 'EP' },
+  { id: 'u_jamal', orgId: ORG.id, name: 'Jamal Greene', title: 'Sales Rep — Foodservice', email: 'jamal.greene@bluestemfresh.com', role: 'kam', initials: 'JG' },
+  { id: 'u_kate', orgId: ORG.id, name: 'Kate Sullivan', title: 'Sales Rep — Club/Mass', email: 'kate.sullivan@bluestemfresh.com', role: 'kam', initials: 'KS' },
+  { id: 'u_victor', orgId: ORG.id, name: 'Victor Huang', title: 'Sales Rep — Distributors', email: 'victor.huang@bluestemfresh.com', role: 'kam', initials: 'VH' },
+  { id: 'u_ben', orgId: ORG.id, name: 'Ben Carter', title: 'Production Planner', email: 'ben.carter@bluestemfresh.com', role: 'demand_planner', initials: 'BC' },
 ]
 
-export const CURRENT_USER_ID = 'u_priya'
+/** The persona the demo is presented as — trade marketing owns the calendar. */
+export const CURRENT_USER_ID = 'u_nora'
+export const USER_BY_ID = new Map(USERS.map((u) => [u.id, u]))
 
 /**
- * Territory book. Every chain belongs to exactly one key account manager, and
- * every KAM appears here — that invariant is what lets the sales leaderboard
- * be a genuine rollup of shipment facts rather than a seeded scoreboard.
+ * Territory book, taken from the `SalesRep` column of the pack's customer
+ * list. Every account belongs to exactly one rep and every rep appears here —
+ * that invariant is what lets the sales leaderboard be a genuine rollup of
+ * shipment facts rather than a seeded scoreboard.
  *
- * The shape is deliberately lopsided: one person carries Walmart and one
- * carries two distributors, because that is what a real mid-market CPG account
- * team looks like. It is also why the leaderboard's margin spread is real —
- * club and distributor territories carry much heavier everyday allowances.
+ * The shape is deliberately lopsided: Retail East carries five accounts while
+ * Club/Mass carries one, because that is what a regional produce sales team
+ * looks like. It is also why the leaderboard's margin spread is real — club
+ * and distributor territories carry much heavier everyday allowances.
  */
 export const TERRITORIES: { repId: ID; customerIds: ID[] }[] = [
-  { repId: 'u_priya', customerIds: ['cust_KR'] },
-  { repId: 'u_tom', customerIds: ['cust_WMT'] },
-  { repId: 'u_sasha', customerIds: ['cust_ACI', 'cust_AD'] },
-  { repId: 'u_neil', customerIds: ['cust_CST'] },
-  { repId: 'u_gemma', customerIds: ['cust_PUB', 'cust_HEB'] },
-  { repId: 'u_luis', customerIds: ['cust_TGT'] },
-  { repId: 'u_ada', customerIds: ['cust_SFM', 'cust_WFM'] },
-  { repId: 'u_ravi', customerIds: ['cust_UNFI', 'cust_KEHE'] },
+  { repId: 'u_tom', customerIds: ['cust_NWF', 'cust_PFM', 'cust_RBS', 'cust_MFM', 'cust_EFD'] },
+  { repId: 'u_jamal', customerIds: ['cust_GLG', 'cust_LNF', 'cust_MFS'] },
+  { repId: 'u_kate', customerIds: ['cust_SCS'] },
+  { repId: 'u_elena', customerIds: ['cust_VPM'] },
+  { repId: 'u_victor', customerIds: ['cust_CCG', 'cust_GCC'] },
 ]
 
-/** Chain → owning KAM. */
+/** Chain → owning rep. */
 export const REP_BY_CUSTOMER: Record<string, ID> = Object.fromEntries(
   TERRITORIES.flatMap((t) => t.customerIds.map((c) => [c, t.repId])),
 )
 
 type ChainSpec = {
   code: string
+  /** The pack's CustomerId — the D365 customer account. */
+  d365: string
   name: string
   channel: Customer['channel']
   region: string
-  /** Total selling outlets across the chain. */
+  /** Total selling outlets across the chain (served outlets for distributors). */
   storeCount: number
   banners: { code: string; name: string; region: string; storeCount: number }[]
 }
 
+/**
+ * The twelve accounts that carry trade programs. The pack's other 28
+ * customers (processors, institutional foodservice, e-commerce, farm stands)
+ * buy on everyday terms and never generate a promotional chargeback, so they
+ * stay out of a TPM demo. Banners are the divisions the retailer's remittances
+ * actually arrive from.
+ */
 const CHAINS: ChainSpec[] = [
   {
-    code: 'KR', name: 'Kroger Co.', channel: 'grocery', region: 'National', storeCount: 2740,
+    code: 'NWF', d365: 'C10002', name: 'Northwind Foods', channel: 'grocery', region: 'Ohio Valley', storeCount: 214,
     banners: [
-      { code: 'KR-MKT', name: 'Kroger Marketplace', region: 'Midwest', storeCount: 1240 },
-      { code: 'KR-FM', name: 'Fred Meyer', region: 'Northwest', storeCount: 480 },
-      { code: 'KR-KS', name: 'King Soopers', region: 'Mountain', storeCount: 620 },
-      { code: 'KR-RA', name: 'Ralphs', region: 'West', storeCount: 400 },
+      { code: 'NWF-MKT', name: 'Northwind Markets', region: 'Ohio', storeCount: 152 },
+      { code: 'NWF-FRS', name: 'Northwind Fresh', region: 'Indiana / Kentucky', storeCount: 62 },
     ],
   },
   {
-    code: 'ACI', name: 'Albertsons Companies', channel: 'grocery', region: 'National', storeCount: 2270,
+    code: 'GLG', d365: 'C10001', name: 'Great Lakes Grocers', channel: 'grocery', region: 'Michigan', storeCount: 138,
     banners: [
-      { code: 'ACI-SW', name: 'Safeway', region: 'West', storeCount: 1080 },
-      { code: 'ACI-JO', name: 'Jewel-Osco', region: 'Midwest', storeCount: 590 },
-      { code: 'ACI-VN', name: 'Vons', region: 'Southwest', storeCount: 600 },
+      { code: 'GLG-CORE', name: 'Great Lakes Grocers', region: 'West Michigan', storeCount: 96 },
+      { code: 'GLG-LSM', name: 'Lakeshore Market', region: 'Northern Michigan', storeCount: 42 },
     ],
   },
   {
-    code: 'AD', name: 'Ahold Delhaize USA', channel: 'grocery', region: 'East', storeCount: 2050,
+    code: 'VPM', d365: 'C10008', name: 'ValuePoint Mass Retail', channel: 'mass', region: 'Upper Midwest', storeCount: 326,
     banners: [
-      { code: 'AD-SS', name: 'Stop & Shop', region: 'Northeast', storeCount: 760 },
-      { code: 'AD-FL', name: 'Food Lion', region: 'Southeast', storeCount: 1080 },
-      { code: 'AD-GI', name: 'Giant Food', region: 'Mid-Atlantic', storeCount: 210 },
+      { code: 'VPM-SC', name: 'ValuePoint Supercenter', region: 'Upper Midwest', storeCount: 238 },
+      { code: 'VPM-EX', name: 'ValuePoint Express', region: 'Twin Cities', storeCount: 88 },
     ],
   },
   {
-    code: 'WMT', name: 'Walmart Inc.', channel: 'mass', region: 'National', storeCount: 4680,
+    code: 'SCS', d365: 'C10007', name: 'Summit Club Stores', channel: 'club', region: 'Midwest', storeCount: 41,
+    banners: [{ code: 'SCS-CORE', name: 'Summit Club', region: 'Midwest', storeCount: 41 }],
+  },
+  {
+    code: 'MFS', d365: 'C10011', name: 'Midwest Foodservice Supply', channel: 'distributor', region: 'Chicago', storeCount: 1450,
     banners: [
-      { code: 'WMT-SC', name: 'Walmart Supercenter', region: 'National', storeCount: 3560 },
-      { code: 'WMT-NM', name: 'Walmart Neighborhood Market', region: 'National', storeCount: 1120 },
+      { code: 'MFS-CHI', name: 'MFS Chicago', region: 'Illinois / Wisconsin', storeCount: 820 },
+      { code: 'MFS-DET', name: 'MFS Detroit', region: 'Michigan / Ohio', storeCount: 630 },
     ],
   },
-  { code: 'PUB', name: 'Publix Super Markets', channel: 'grocery', region: 'Southeast', storeCount: 1390, banners: [{ code: 'PUB-CORE', name: 'Publix', region: 'Southeast', storeCount: 1390 }] },
-  { code: 'HEB', name: 'H-E-B', channel: 'grocery', region: 'Texas', storeCount: 430, banners: [{ code: 'HEB-CORE', name: 'H-E-B', region: 'Texas', storeCount: 380 }, { code: 'HEB-CP', name: 'Central Market', region: 'Texas', storeCount: 50 }] },
-  { code: 'TGT', name: 'Target Corp.', channel: 'mass', region: 'National', storeCount: 1960, banners: [{ code: 'TGT-CORE', name: 'Target', region: 'National', storeCount: 1960 }] },
-  { code: 'CST', name: 'Costco Wholesale', channel: 'club', region: 'National', storeCount: 620, banners: [{ code: 'CST-CORE', name: 'Costco', region: 'National', storeCount: 620 }] },
-  { code: 'SFM', name: 'Sprouts Farmers Market', channel: 'natural', region: 'West', storeCount: 415, banners: [{ code: 'SFM-CORE', name: 'Sprouts', region: 'West', storeCount: 415 }] },
-  { code: 'WFM', name: 'Whole Foods Market', channel: 'natural', region: 'National', storeCount: 530, banners: [{ code: 'WFM-CORE', name: 'Whole Foods', region: 'National', storeCount: 530 }] },
-  { code: 'UNFI', name: 'UNFI', channel: 'distributor', region: 'National', storeCount: 3400, banners: [{ code: 'UNFI-E', name: 'UNFI East', region: 'East', storeCount: 1900 }, { code: 'UNFI-W', name: 'UNFI West', region: 'West', storeCount: 1500 }] },
-  { code: 'KEHE', name: 'KeHE Distributors', channel: 'distributor', region: 'National', storeCount: 2600, banners: [{ code: 'KEHE-CORE', name: 'KeHE', region: 'National', storeCount: 2600 }] },
+  {
+    code: 'RBS', d365: 'C10006', name: 'Riverbend Supermarkets', channel: 'grocery', region: 'Western Pennsylvania', storeCount: 97,
+    banners: [{ code: 'RBS-CORE', name: 'Riverbend', region: 'Western Pennsylvania', storeCount: 97 }],
+  },
+  {
+    code: 'PFM', d365: 'C10004', name: 'Prairie Fresh Market', channel: 'grocery', region: 'Wisconsin', storeCount: 72,
+    banners: [
+      { code: 'PFM-CORE', name: 'Prairie Fresh', region: 'Wisconsin', storeCount: 58 },
+      { code: 'PFM-NBH', name: 'Prairie Fresh Neighborhood', region: 'Madison metro', storeCount: 14 },
+    ],
+  },
+  {
+    code: 'MFM', d365: 'C10031', name: 'Metro Fresh Markets', channel: 'grocery', region: 'New England', storeCount: 63,
+    banners: [{ code: 'MFM-CORE', name: 'Metro Fresh', region: 'New England', storeCount: 63 }],
+  },
+  {
+    code: 'EFD', d365: 'C10015', name: 'Erie Fresh Distributors', channel: 'distributor', region: 'Upstate New York', storeCount: 640,
+    banners: [
+      { code: 'EFD-BUF', name: 'Erie Fresh Buffalo', region: 'Western New York', storeCount: 360 },
+      { code: 'EFD-ROC', name: 'Erie Fresh Rochester', region: 'Finger Lakes', storeCount: 280 },
+    ],
+  },
+  {
+    code: 'CCG', d365: 'C10005', name: 'Copper Creek Grocery', channel: 'grocery', region: 'Indiana', storeCount: 46,
+    banners: [{ code: 'CCG-CORE', name: 'Copper Creek', region: 'Indiana', storeCount: 46 }],
+  },
+  {
+    code: 'LNF', d365: 'C10009', name: 'Lakeside Natural Foods', channel: 'natural', region: 'Southeast Michigan', storeCount: 24,
+    banners: [{ code: 'LNF-CORE', name: 'Lakeside Natural', region: 'Southeast Michigan', storeCount: 24 }],
+  },
+  {
+    code: 'GCC', d365: 'C10010', name: 'Green Cart Co-op', channel: 'natural', region: 'Detroit', storeCount: 11,
+    banners: [{ code: 'GCC-CORE', name: 'Green Cart', region: 'Detroit', storeCount: 11 }],
+  },
 ]
 
 function buildCustomers(): Customer[] {
@@ -129,9 +170,9 @@ function buildCustomers(): Customer[] {
       channel: chain.channel,
       region: chain.region,
       storeCount: chain.storeCount,
-      externalIds: { d365: `US-${chain.code}`, netsuite: `${chain.code}00` },
+      externalIds: { d365: chain.d365 },
     })
-    for (const b of chain.banners) {
+    chain.banners.forEach((b, i) => {
       out.push({
         id: `cust_${b.code}`,
         orgId: ORG.id,
@@ -142,9 +183,9 @@ function buildCustomers(): Customer[] {
         channel: chain.channel,
         region: b.region,
         storeCount: b.storeCount,
-        externalIds: { d365: `US-${b.code}`, netsuite: `${b.code.replace('-', '')}` },
+        externalIds: { d365: `${chain.d365}-${String(i + 1).padStart(2, '0')}` },
       })
-    }
+    })
   }
   return out
 }
@@ -155,8 +196,20 @@ export const CUSTOMERS: Customer[] = buildCustomers()
 export const CHAIN_CUSTOMERS = CUSTOMERS.filter((c) => c.level === 'chain')
 export const BANNER_CUSTOMERS = CUSTOMERS.filter((c) => c.level === 'banner')
 
-type SkuSpec = [name: string, casePack: number, listPrice: number, cogsPct: number, weight: number]
+/** [item id, name, case pack, list price / case, standard cost / case, lb / case] */
+type SkuSpec = [sku: string, name: string, casePack: number, listPrice: number, cogs: number, weight: number]
 
+/**
+ * Finished goods from the pack's `items.csv` (the PK-* packed-fresh and FC-*
+ * fresh-cut items; raw crops, packaging and ingredients are not sold). List
+ * price and standard cost are the pack's figures to the cent, so a margin
+ * shown here ties to the Product Cost Inquiry app.
+ *
+ * Bluestem sells under three labels, which play the role a brand plays in a
+ * CPG trade plan: a planner promotes a label, and a retailer's chargeback
+ * names one. Sub-brands are the pack's sub-categories — the grain a demand
+ * planner forecasts at.
+ */
 const PRODUCT_LINES: {
   category: string
   brand: string
@@ -164,99 +217,90 @@ const PRODUCT_LINES: {
   skus: SkuSpec[]
 }[] = [
   {
-    category: 'Snacks', brand: 'Summit Trail', subbrand: 'Trail Mix',
+    category: 'Packed Fresh', brand: 'Bluestem Orchard', subbrand: 'Apples',
     skus: [
-      ['Summit Trail Original Trail Mix 8oz', 12, 34.2, 0.58, 6.0],
-      ['Summit Trail Dark Chocolate Trail Mix 8oz', 12, 36.6, 0.6, 6.0],
-      ['Summit Trail Tropical Trail Mix 8oz', 12, 35.4, 0.59, 6.0],
-      ['Summit Trail Original Trail Mix 22oz', 8, 51.2, 0.56, 11.0],
-      ['Summit Trail Cranberry Almond 8oz', 12, 36.0, 0.61, 6.0],
+      ['PK-APL-HC-3LB', 'Honeycrisp Apples 3 lb pouch', 12, 22.5, 15.8, 36],
+      ['PK-APL-GA-3LB', 'Gala Apples 3 lb pouch', 12, 18.75, 13.4, 36],
+      ['PK-APL-HC-TRAY', 'Honeycrisp Apples 88 ct tray', 88, 42.0, 29.3, 40],
     ],
   },
   {
-    category: 'Snacks', brand: 'Summit Trail', subbrand: 'Protein Bars',
+    category: 'Packed Fresh', brand: 'Bluestem Orchard', subbrand: 'Berries',
     skus: [
-      ['Summit Trail Peanut Butter Bar 12ct', 6, 41.4, 0.52, 5.6],
-      ['Summit Trail Chocolate Sea Salt Bar 12ct', 6, 41.4, 0.52, 5.6],
-      ['Summit Trail Almond Honey Bar 12ct', 6, 41.4, 0.53, 5.6],
-      ['Summit Trail Berry Oat Bar 12ct', 6, 40.2, 0.54, 5.6],
-      ['Summit Trail Variety Bar 24ct', 4, 55.6, 0.5, 7.4],
+      ['PK-BLU-PINT', 'Blueberries pint clamshell', 12, 30.0, 21.0, 9],
+      ['PK-BLU-18OZ', 'Blueberries 18 oz clamshell', 8, 27.2, 19.4, 9],
     ],
   },
   {
-    category: 'Snacks', brand: 'Summit Trail', subbrand: 'Nut Butter Cups',
+    category: 'Packed Fresh', brand: 'Bluestem Orchard', subbrand: 'Cherries',
     skus: [
-      ['Summit Trail PB Cups Dark 4.2oz', 12, 38.9, 0.55, 3.4],
-      ['Summit Trail PB Cups Milk 4.2oz', 12, 38.9, 0.55, 3.4],
-      ['Summit Trail Almond Butter Cups 4.2oz', 12, 42.1, 0.57, 3.4],
-      ['Summit Trail PB Cups Minis 8oz', 10, 44.5, 0.56, 5.4],
+      ['PK-CHR-TRAY', 'Tart Cherries 1 lb tray', 12, 36.0, 24.3, 12],
     ],
   },
   {
-    category: 'Beverages', brand: 'Golden Hour', subbrand: 'Sparkling Water',
+    category: 'Packed Fresh', brand: 'Bluestem Fields', subbrand: 'Vegetables',
     skus: [
-      ['Golden Hour Sparkling Grapefruit 12pk', 2, 23.8, 0.47, 18.0],
-      ['Golden Hour Sparkling Lime 12pk', 2, 23.8, 0.47, 18.0],
-      ['Golden Hour Sparkling Black Cherry 12pk', 2, 23.8, 0.47, 18.0],
-      ['Golden Hour Sparkling Peach 12pk', 2, 23.8, 0.48, 18.0],
-      ['Golden Hour Sparkling Variety 24pk', 1, 21.4, 0.46, 18.0],
+      ['PK-ASP-1LB', 'Asparagus 1 lb bunch', 11, 33.0, 22.8, 11],
+      ['PK-CUC-SLC', 'Slicer Cucumbers 24 ct', 24, 16.8, 11.9, 24],
+      ['PK-CUC-MINI', 'Mini Cucumbers 1 lb bag', 12, 19.2, 13.4, 12],
+      ['PK-ZUC-CTN', 'Zucchini 20 lb carton', 1, 19.0, 13.5, 20],
+      ['PK-CRN-4PK', 'Sweet Corn 4-pack tray', 12, 16.8, 12.0, 14],
+      ['PK-SQB-CTN', 'Butternut Squash 35 lb carton', 1, 21.0, 14.2, 35],
+      ['PK-PEP-GRN', 'Green Bell Peppers 1-1/9 bu', 1, 24.0, 17.0, 28],
+      ['PK-PEP-3PK', 'Tri-Color Peppers 3-pack', 12, 30.0, 19.6, 10],
     ],
   },
   {
-    category: 'Beverages', brand: 'Golden Hour', subbrand: 'Cold Brew',
+    category: 'Packed Fresh', brand: 'Bluestem Fields', subbrand: 'Leafy Greens',
     skus: [
-      ['Golden Hour Cold Brew Black 11oz', 12, 46.8, 0.51, 9.2],
-      ['Golden Hour Cold Brew Oat Latte 11oz', 12, 49.2, 0.53, 9.4],
-      ['Golden Hour Cold Brew Vanilla 11oz', 12, 49.2, 0.53, 9.4],
-      ['Golden Hour Cold Brew Concentrate 32oz', 6, 53.4, 0.49, 13.5],
+      ['PK-ROM-HRT', 'Romaine Hearts 3 ct', 12, 22.8, 16.4, 12],
     ],
   },
   {
-    category: 'Beverages', brand: 'Golden Hour', subbrand: 'Botanical Soda',
+    category: 'Fresh-Cut', brand: 'Bluestem Fresh Cuts', subbrand: 'Cut Apples',
     skus: [
-      ['Golden Hour Ginger Botanical 4pk', 6, 31.2, 0.5, 8.4],
-      ['Golden Hour Hibiscus Botanical 4pk', 6, 31.2, 0.5, 8.4],
-      ['Golden Hour Yuzu Botanical 4pk', 6, 32.4, 0.51, 8.4],
-      ['Golden Hour Botanical Variety 8pk', 3, 33.6, 0.49, 8.6],
+      ['FC-APL-SLC-2OZ', 'Apple Slices 2 oz snack cup', 24, 27.6, 17.0, 3],
+      ['FC-APL-SLC-14OZ', 'Apple Slices 14 oz family pack', 8, 30.4, 18.2, 7],
+      ['FC-APL-DICE-5LB', 'Diced Apples 5 lb foodservice', 4, 37.0, 22.9, 20],
     ],
   },
   {
-    category: 'Meals', brand: 'Harvest Table', subbrand: 'Soups',
+    category: 'Fresh-Cut', brand: 'Bluestem Fresh Cuts', subbrand: 'Vegetable Blends',
     skus: [
-      ['Harvest Table Tomato Basil Soup 16oz', 12, 39.6, 0.55, 12.6],
-      ['Harvest Table Butternut Squash Soup 16oz', 12, 41.4, 0.56, 12.6],
-      ['Harvest Table Chicken Wild Rice Soup 16oz', 12, 43.8, 0.58, 12.6],
-      ['Harvest Table Lentil Soup 16oz', 12, 38.4, 0.54, 12.6],
-      ['Harvest Table Corn Chowder 16oz', 12, 41.4, 0.57, 12.6],
+      ['FC-VEG-STIR-12OZ', 'Stir-Fry Vegetable Blend 12 oz', 8, 28.8, 17.5, 6],
+      ['FC-VEG-SQB-DICE', 'Diced Butternut Squash 12 oz', 8, 24.0, 14.6, 6],
+      ['FC-VEG-ZOODLE', 'Zucchini Noodles 10 oz', 8, 26.4, 14.7, 5],
+      ['FC-CUC-SLC-5LB', 'Sliced Cucumbers 5 lb foodservice', 4, 24.0, 15.0, 20],
+      ['FC-PEP-DICE-5LB', 'Diced Peppers 5 lb foodservice', 4, 33.6, 20.5, 20],
+      ['FC-CRN-KERNEL', 'Cut Sweet Corn Kernels 2 lb', 6, 26.4, 15.9, 12],
     ],
   },
   {
-    category: 'Meals', brand: 'Harvest Table', subbrand: 'Pasta Sauce',
+    category: 'Fresh-Cut', brand: 'Bluestem Fresh Cuts', subbrand: 'Salads',
     skus: [
-      ['Harvest Table Marinara 24oz', 12, 36.6, 0.52, 19.2],
-      ['Harvest Table Vodka Sauce 24oz', 12, 43.2, 0.55, 19.2],
-      ['Harvest Table Arrabbiata 24oz', 12, 39.0, 0.53, 19.2],
-      ['Harvest Table Roasted Garlic 24oz', 12, 38.4, 0.53, 19.2],
-      ['Harvest Table Basil Pesto 8oz', 12, 52.8, 0.6, 7.2],
+      ['FC-SAL-ROM-CHOP', 'Chopped Romaine 2 lb foodservice', 6, 26.4, 16.5, 12],
+      ['FC-SAL-GARDEN', 'Garden Salad Kit 10 oz', 8, 29.6, 17.5, 5],
+      ['FC-SAL-CAESAR', 'Caesar Salad Kit 10 oz', 8, 31.2, 18.6, 5],
     ],
   },
   {
-    category: 'Meals', brand: 'Harvest Table', subbrand: 'Broths',
+    category: 'Fresh-Cut', brand: 'Bluestem Fresh Cuts', subbrand: 'Fruit Cups',
     skus: [
-      ['Harvest Table Chicken Broth 32oz', 12, 32.4, 0.5, 25.5],
-      ['Harvest Table Vegetable Broth 32oz', 12, 30.6, 0.49, 25.5],
-      ['Harvest Table Bone Broth 32oz', 12, 51.6, 0.58, 25.5],
+      ['FC-FRT-CUP-6OZ', 'Fruit Cup (apple/blueberry) 6 oz', 12, 32.4, 19.5, 4.5],
+    ],
+  },
+  {
+    category: 'Fresh-Cut', brand: 'Bluestem Fresh Cuts', subbrand: 'Trays',
+    skus: [
+      ['FC-VEG-TRAY', 'Veggie Tray w/ dip 24 oz', 4, 36.0, 21.7, 6],
     ],
   },
 ]
 
 function buildProducts(): Product[] {
   const out: Product[] = []
-  let n = 100
   for (const line of PRODUCT_LINES) {
-    for (const [name, casePack, listPrice, cogsPct, weight] of line.skus) {
-      n += 1
-      const sku = `${line.brand.split(' ').map((w) => w[0]).join('')}${n}`
+    for (const [sku, name, casePack, listPrice, cogs, weight] of line.skus) {
       out.push({
         id: `prod_${sku}`,
         orgId: ORG.id,
@@ -268,7 +312,7 @@ function buildProducts(): Product[] {
         casePack,
         baseUom: 'CS',
         listPrice,
-        cogs: Math.round(listPrice * cogsPct * 100) / 100,
+        cogs,
         netWeightLb: weight,
         status: 'active',
       })
@@ -285,45 +329,62 @@ export const CATEGORIES = [...new Set(PRODUCTS.map((p) => p.category))]
  * Per-customer reason code mapping. Every retailer uses different codes for
  * the same thing — this table is why an analyst can stop translating by hand,
  * and the unmapped codes below are deliberate: they drive the "map this code"
- * moment in the demo.
+ * moment in the demo. The pack's own vocabulary (PROMO / AD / SHORT / DAMAGE /
+ * PRICE) shows up where the retailer happens to use plain codes.
  */
 const RAW_REASON_CODES: [chain: string, code: string, label: string, canonical: ReasonCode['canonical']][] = [
-  ['KR', '501', 'Promotional Allowance', 'trade_promotion'],
-  ['KR', '512', 'Ad Fee / Feature', 'trade_promotion'],
-  ['KR', '533', 'Scan Deal Settlement', 'trade_promotion'],
-  ['KR', '240', 'Shortage — Case', 'shortage'],
-  ['KR', '260', 'Unsaleable / Damage', 'damages'],
-  ['KR', '810', 'Vendor Compliance — ASN', 'compliance_fine'],
-  ['ACI', 'PA-01', 'Promotion Allowance', 'trade_promotion'],
-  ['ACI', 'PA-07', 'Display Support', 'trade_promotion'],
-  ['ACI', 'SH-12', 'Receiving Shortage', 'shortage'],
-  ['ACI', 'PR-04', 'Price Discrepancy', 'pricing'],
-  ['ACI', 'FR-02', 'Freight Adjustment', 'freight'],
-  ['AD', 'TPR', 'Temporary Price Reduction', 'trade_promotion'],
-  ['AD', 'MKT', 'Marketing Support', 'trade_promotion'],
-  ['AD', 'SHT', 'Short Ship', 'shortage'],
-  ['AD', 'RTV', 'Return to Vendor', 'returns'],
-  ['WMT', '25', 'Promotional Allowance', 'trade_promotion'],
-  ['WMT', '22', 'Billback Deal', 'trade_promotion'],
-  ['WMT', '10', 'Concealed Shortage', 'shortage'],
-  ['WMT', '92', 'OTIF Fine', 'compliance_fine'],
-  ['PUB', 'AD1', 'Ad Allowance', 'trade_promotion'],
-  ['PUB', 'DSP', 'Display Allowance', 'trade_promotion'],
-  ['PUB', 'SHG', 'Shortage', 'shortage'],
-  ['HEB', 'TP', 'Trade Promo Settlement', 'trade_promotion'],
-  ['HEB', 'DM', 'Damage Allowance', 'damages'],
-  ['TGT', 'MKD', 'Markdown Support', 'trade_promotion'],
-  ['TGT', 'VCP', 'Vendor Compliance Penalty', 'compliance_fine'],
-  ['CST', 'MVM', 'MVM Promotion', 'trade_promotion'],
-  ['CST', 'RB', 'Instant Rebate', 'trade_promotion'],
-  ['SFM', 'PRM', 'Promotion', 'trade_promotion'],
-  ['WFM', 'WFP', 'Whole Foods Promo', 'trade_promotion'],
-  ['UNFI', 'DA', 'Deal Allowance', 'trade_promotion'],
-  ['UNFI', 'SPL', 'Spoilage', 'damages'],
-  ['KEHE', 'PROMO', 'Promotional Deal', 'trade_promotion'],
+  ['NWF', 'PROMO', 'Promotional Allowance', 'trade_promotion'],
+  ['NWF', 'AD', 'Ad Allowance', 'trade_promotion'],
+  ['NWF', 'SCAN', 'Scan Settlement', 'trade_promotion'],
+  ['NWF', 'SHORT', 'Receiving Shortage', 'shortage'],
+  ['NWF', 'DAMAGE', 'Quality Reject / Unsaleable', 'damages'],
+  ['NWF', 'PRICE', 'Price Discrepancy', 'pricing'],
+  ['GLG', 'TP-01', 'Trade Promotion', 'trade_promotion'],
+  ['GLG', 'TP-04', 'Display Support', 'trade_promotion'],
+  ['GLG', 'QC', 'Quality Rejection at DC', 'damages'],
+  ['GLG', 'SH', 'Short Ship', 'shortage'],
+  ['GLG', 'FRT', 'Freight Adjustment', 'freight'],
+  ['VPM', '25', 'Promotional Allowance', 'trade_promotion'],
+  ['VPM', '22', 'Billback Deal', 'trade_promotion'],
+  ['VPM', '10', 'Concealed Shortage', 'shortage'],
+  ['VPM', '92', 'OTIF Fine', 'compliance_fine'],
+  ['VPM', '61', 'Temperature Deviation', 'damages'],
+  ['SCS', 'MVM', 'Member Value Promotion', 'trade_promotion'],
+  ['SCS', 'IR', 'Instant Rebate', 'trade_promotion'],
+  ['SCS', 'CS', 'Concealed Shortage', 'shortage'],
+  ['SCS', 'VC', 'Vendor Compliance Fine', 'compliance_fine'],
+  ['MFS', 'DA', 'Deal Allowance', 'trade_promotion'],
+  ['MFS', 'GA', 'Growth Allowance', 'trade_promotion'],
+  ['MFS', 'SPL', 'Spoilage', 'damages'],
+  ['MFS', 'RTV', 'Return to Vendor', 'returns'],
+  ['RBS', 'AD1', 'Ad Allowance', 'trade_promotion'],
+  ['RBS', 'DSP', 'Display Allowance', 'trade_promotion'],
+  ['RBS', 'SHG', 'Shortage', 'shortage'],
+  ['RBS', 'PR', 'Pricing Adjustment', 'pricing'],
+  ['PFM', 'TPR', 'Temporary Price Reduction', 'trade_promotion'],
+  ['PFM', 'MKT', 'Marketing Support', 'trade_promotion'],
+  ['PFM', 'SHT', 'Short Ship', 'shortage'],
+  ['PFM', 'DMG', 'Damage Allowance', 'damages'],
+  ['MFM', 'PA', 'Promotion Allowance', 'trade_promotion'],
+  ['MFM', 'CD', 'Coupon / Demo Support', 'trade_promotion'],
+  ['MFM', 'SH', 'Shortage', 'shortage'],
+  ['MFM', 'CMP', 'Compliance Chargeback', 'compliance_fine'],
+  ['EFD', 'DA', 'Deal Allowance', 'trade_promotion'],
+  ['EFD', 'VR', 'Volume Rebate', 'trade_promotion'],
+  ['EFD', 'FRT', 'Freight Adjustment', 'freight'],
+  ['EFD', 'SPL', 'Spoilage', 'damages'],
+  ['CCG', 'PROMO', 'Promotional Allowance', 'trade_promotion'],
+  ['CCG', 'DEMO', 'In-Store Demo', 'trade_promotion'],
+  ['CCG', 'DAMAGE', 'Damage Allowance', 'damages'],
+  ['CCG', 'SHORT', 'Shortage', 'shortage'],
+  ['LNF', 'PRM', 'Promotion', 'trade_promotion'],
+  ['LNF', 'SMP', 'Sampling Support', 'trade_promotion'],
+  ['LNF', 'SPL', 'Spoilage', 'damages'],
+  ['GCC', 'COOP', 'Co-op Promotion', 'trade_promotion'],
+  ['GCC', 'SHRT', 'Shortage', 'shortage'],
   // Deliberately ambiguous — these drive the "unclassified code" queue.
-  ['KR', '599', 'Misc Allowance', 'unknown'],
-  ['WMT', '99', 'Other Adjustment', 'unknown'],
+  ['NWF', '599', 'Misc Allowance', 'unknown'],
+  ['VPM', '99', 'Other Adjustment', 'unknown'],
 ]
 
 export const REASON_CODES: ReasonCode[] = RAW_REASON_CODES.flatMap(
