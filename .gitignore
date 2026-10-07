@@ -16,3 +16,6 @@ TPM_BUILD_PLAN.md
 
 # Local build backups (the live site is rebuilt from git on push).
 dist.backup*/
+
+# Booth-kit renders: videos, frames, the as-of build they were recorded from.
+demo-kit/out/

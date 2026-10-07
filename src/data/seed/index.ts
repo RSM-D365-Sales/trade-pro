@@ -31,8 +31,17 @@ import { buildCommercial } from './commercial'
  * The demo's "today" — the same as-of date as the Bluestem data pack, so this
  * app and its siblings describe the same week. Fixed so screenshots and
  * verify.mjs stay reproducible; move it and every date in the demo follows.
+ *
+ * VITE_DEMO_TODAY (build time) or DEMO_TODAY (node / tsx) re-anchors a build
+ * without touching the default — the booth video is recorded from a build
+ * anchored to the recording day so its dates are never weeks stale. Unset,
+ * nothing changes: the deployed site and the tests stay on the pack's date.
  */
-export const DEMO_TODAY = '2026-09-17'
+const DEFAULT_TODAY = '2026-09-17'
+const envToday =
+  (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_DEMO_TODAY ??
+  (typeof process !== 'undefined' ? process.env?.DEMO_TODAY : undefined)
+export const DEMO_TODAY = envToday && /^\d{4}-\d{2}-\d{2}$/.test(envToday) ? envToday : DEFAULT_TODAY
 
 export const SEED_CONFIG = {
   seed: 20260917,
